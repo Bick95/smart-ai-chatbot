@@ -1,0 +1,71 @@
+[project]
+name = "chatbot-server"
+version = "0.1.0"
+description = "This project is going to host the Python server serving the smart chatbot."
+readme = "README.md"
+requires-python = ">=3.12"
+
+# Dependencies & Sources
+dependencies = [
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.12.0",
+    "fastapi>=0.128.8",
+    "uvicorn>=0.40.0",
+    "langchain-core>=1.2.11",
+    "langgraph>=1.0.8",
+]
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "isort>=6.0.1",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.0.0",
+    "pytest-cov>=6.2.1",
+    "httpx>=0.27.0",
+    "ruff>=0.12.3",
+]
+
+# Further packages to be included, e.g. neighboring uv-projects
+[tool.uv.sources]
+
+# Build Logistics
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+# Formatters & Linters
+[tool.black]
+line-length = 88
+target-version = ['py312']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+# Testing
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+]
+markers = [
+    "unit: Unit tests that don't require external dependencies",
+    "integration: Integration tests that may require external dependencies",
+    "slow: Tests that take a long time to run",
+]
