@@ -7,5 +7,5 @@ NodeUpdate: TypeAlias = AgentStateUpdate
 NodeReturn: TypeAlias = Union[NodeUpdate, Awaitable[NodeUpdate]]
 NodeFn: TypeAlias = Callable[[AgentState], NodeReturn]
 
-NodeLike: TypeAlias = Union[NodeFn, Runnable]  # widen to accept runnables
+NodeLike: TypeAlias = Union[NodeFn, Runnable]
 AgentNodes: TypeAlias = dict[str, NodeLike]

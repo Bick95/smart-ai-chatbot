@@ -23,14 +23,3 @@ This syncs dependencies and starts the server.
 | `uv run pytest`    | Run tests                |
 | `uv run black .`   | Format code              |
 | `uv run ruff check`| Lint code                |
-
-## Project Structure
-
-```
-chatbot-server/
-├── src/
-│   └── main.py
-├── pyproject.toml
-├── run_dev.sh
-└── uv.lock
-```

@@ -9,7 +9,6 @@ from langchain_core.language_models import BaseChatModel
 from src.chatbot.types.llm_models import LLMModelSelection, LLMModelIdMap
 
 
-# Clients
 @dataclass(frozen=True, slots=True)
 class Clients:
     http: Mapping[str, httpx.Client]
