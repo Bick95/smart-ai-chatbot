@@ -13,6 +13,7 @@ dependencies = [
     "uvicorn>=0.40.0",
     "langchain-core>=1.2.11",
     "langgraph>=1.0.8",
+    "langchain>=1.2.10",
 ]
 
 [dependency-groups]

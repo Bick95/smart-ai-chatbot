@@ -9,11 +9,16 @@ Python backend for the smart AI chatbot (FastAPI, LangChain, LangGraph).
 
 ## Quick Start
 
+1. Create `.env` with `OPENAI_API_KEY=...`
+2. Run the CLI chat interface:
+
 ```bash
+uv run python src/main.py
+# or
 ./run_dev.sh
 ```
 
-This syncs dependencies and starts the server.
+Type `quit` or `exit` or `q` to end the conversation.
 
 ## Development
 
@@ -23,14 +28,3 @@ This syncs dependencies and starts the server.
 | `uv run pytest`    | Run tests                |
 | `uv run black .`   | Format code              |
 | `uv run ruff check`| Lint code                |
-
-## Project Structure
-
-```
-chatbot-server/
-├── src/
-│   └── main.py
-├── pyproject.toml
-├── run_dev.sh
-└── uv.lock
-```
