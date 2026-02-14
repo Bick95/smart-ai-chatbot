@@ -25,12 +25,12 @@ uv run uvicorn src.server.app:app --reload --host 0.0.0.0 --port 8000
 ```
 
 - **CLI**: Type `quit`, `exit`, or `q` to end the conversation.
-- **API**: `POST /api/v1/chat` with `{"messages": [{"role": "user", "content": "..."}]}` — docs at `/docs`.
+- **API**: `POST /api/v1/stateless_chat` with `{"messages": [{"role": "user", "content": "..."}]}` — docs at `/docs`.
 
 Example API-HTTP-request to localhost:
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/chat \
+curl -X POST http://localhost:8000/api/v1/stateless_chat \
   -H "Content-Type: application/json" \
   -d '{"messages": [{"role": "user", "content": "What is 3 + 5?"}]}'
 ```
