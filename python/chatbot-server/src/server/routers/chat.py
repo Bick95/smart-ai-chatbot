@@ -12,7 +12,7 @@ from langgraph.graph.state import CompiledStateGraph
 from src.chatbot.state import AgentState
 from src.server.dependencies import get_agent_graph
 from src.server.schemas.chat import ChatRequest, ChatResponse
-from src.server.utils import to_langchain_messages
+from src.utils.messages import to_langchain_messages
 from src.settings import settings
 
 
