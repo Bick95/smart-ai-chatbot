@@ -37,7 +37,12 @@ async def chat(
     """
     try:
         messages = to_langchain_messages([m.model_dump() for m in request.messages])
+
+        if not messages:
+            raise ValueError("No valid messages provided")
+
         # TODO: Add guardrails to prevent abuse or misuse of the API
+
         result_agent_state: AgentState = await agent.ainvoke({"messages": messages})
         result_messages: List[AnyMessage] = result_agent_state["messages"]
 
