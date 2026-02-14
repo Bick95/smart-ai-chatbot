@@ -1,9 +1,13 @@
 from langchain.messages import AIMessage, SystemMessage, ToolMessage
+
 from src.chatbot.state import AgentState, AgentStateUpdate
-from src.chatbot.types.llm_models import LLMModelSelection
 from src.chatbot.types.agent_nodes import AgentNodes
 from src.chatbot.types.agent_tools import AgentTools
+from src.chatbot.types.llm_models import LLMModelSelection
+from src.utils.logging import get_logger
 from src.utils.types.clients import Clients
+
+logger = get_logger(__name__)
 
 
 # TODO: Adjust the prompts
@@ -26,8 +30,8 @@ def get_agent_nodes(clients: Clients, agent_tools: AgentTools) -> AgentNodes:
             )
             return {"messages": [response]}
 
-        except Exception as e:
-            print(f"Error in llm_node: {e}. Returning fallback message.")
+        except Exception:
+            logger.exception("Error in llm_node. Returning fallback message.")
             return {
                 "messages": [
                     AIMessage(
@@ -47,8 +51,11 @@ def get_agent_nodes(clients: Clients, agent_tools: AgentTools) -> AgentNodes:
                     ToolMessage(content=observation, tool_call_id=tool_call["id"])
                 )
 
-            except Exception as e:
-                print(f"Error for tool call: {tool_call} in tool_node: {e}. Returning fallback message.")
+            except Exception:
+                logger.exception(
+                    "Error for tool call %s in tool_node. Returning fallback.",
+                    tool_call,
+                )
                 result.append(
                     ToolMessage(content="Sorry, I cannot perform that task right now. Please double-check your input and try again or try something different if this tool call keeps failing.", tool_call_id=tool_call["id"])
                 )

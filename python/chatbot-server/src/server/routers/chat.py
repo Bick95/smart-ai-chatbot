@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import traceback
 from typing import List
 
 from fastapi import APIRouter, Depends
@@ -12,8 +11,11 @@ from langgraph.graph.state import CompiledStateGraph
 from src.chatbot.state import AgentState
 from src.server.dependencies import get_agent_graph
 from src.server.schemas.chat import ChatRequest, ChatResponse
-from src.server.utils import to_langchain_messages
 from src.settings import settings
+from src.utils.logging import get_logger
+from src.utils.messages import to_langchain_messages
+
+logger = get_logger(__name__)
 
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -53,11 +55,13 @@ async def chat(
 
         if settings.DEBUG:
             for msg in result_messages:
-                print(
-                    f"Message ({msg.type}): {msg.content if msg.content else 'No content'}; "
-                    f"Raw message: {msg.model_dump()}"
+                logger.debug(
+                    "Message (%s): %s; Raw: %s",
+                    msg.type,
+                    msg.content if msg.content else "No content",
+                    msg.model_dump(),
                 )
-            print(f"Reply {reply.type}: {reply.content}")
+            logger.debug("Reply %s: %s", reply.type, reply.content)
 
         if not isinstance(reply, AIMessage) or not reply.content:
             raise ValueError(
@@ -69,9 +73,7 @@ async def chat(
         )
         return ChatResponse(content=content)
 
-    except Exception as e:
-        print(f"Error in chat: {e}")
-        if settings.DEBUG:
-            print(f"Error details: {traceback.format_exc()}")
+    except Exception:
+        logger.exception("Error in chat.")
 
         return ChatResponse(content=_FALLBACK_CONTENT)
