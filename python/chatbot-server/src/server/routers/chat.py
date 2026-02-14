@@ -37,6 +37,7 @@ async def chat(
     Provide the conversation history; the assistant's response will be returned.
     """
     messages = _to_langchain_messages([m.model_dump() for m in request.messages])
+    # TODO: Add guardrails to prevent abuse or misuse of the API
     result = await agent.ainvoke({"messages": messages})
     result_messages = result["messages"]
 
