@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
+from src.utils.logging import get_logger
+
+logger = get_logger(__name__)
+
 
 def to_langchain_messages(messages: list[dict]) -> list[BaseMessage]:
     """Convert API message format to LangChain messages."""
@@ -19,9 +23,10 @@ def to_langchain_messages(messages: list[dict]) -> list[BaseMessage]:
             case "system":
                 result.append(SystemMessage(content=content))
             case _:
-                print(
-                    f"Invalid role: {role} found in one message. Expected 'user', "
-                    "'assistant', or 'system'. Going to skip this message."
+                logger.warning(
+                    "Invalid role %r in message. Expected 'user', 'assistant', or "
+                    "'system'. Skipping.",
+                    role,
                 )
                 continue
     return result
