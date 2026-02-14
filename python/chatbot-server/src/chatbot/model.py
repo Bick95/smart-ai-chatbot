@@ -10,6 +10,8 @@ def get_model(
     api_key: str | None = None,
 ) -> BaseChatModel:
     kwargs: dict = {"model": model_id, "temperature": temperature}
+
     if api_key is not None:
         kwargs["api_key"] = api_key
+
     return init_chat_model(**kwargs)

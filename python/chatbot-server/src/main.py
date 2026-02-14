@@ -1,10 +1,12 @@
+import asyncio
+
 from langchain_core.messages import AIMessage, HumanMessage
 
 from src.chatbot.graph import get_agent
 from src.utils.clients import create_clients
 
 
-def run_chat() -> None:
+async def run_chat() -> None:
     clients = create_clients()
     agent = get_agent(clients)
     messages: list = []
@@ -13,7 +15,8 @@ def run_chat() -> None:
 
     while True:
         try:
-            user_input = input("You: ").strip()
+            user_input = await asyncio.to_thread(input, "You: ")
+            user_input = user_input.strip()
         except (EOFError, KeyboardInterrupt):
             print("\nGoodbye!")
             break
@@ -25,7 +28,7 @@ def run_chat() -> None:
             break
 
         messages.append(HumanMessage(content=user_input))
-        result = agent.invoke({"messages": messages})
+        result = await agent.ainvoke({"messages": messages})
         messages = result["messages"]
 
         for msg in reversed(messages):
@@ -35,7 +38,7 @@ def run_chat() -> None:
 
 
 def main() -> None:
-    run_chat()
+    asyncio.run(run_chat())
 
 
 if __name__ == "__main__":
