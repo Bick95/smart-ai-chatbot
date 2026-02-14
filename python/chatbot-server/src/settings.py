@@ -13,6 +13,10 @@ class Settings(BaseSettings):
 
     DEBUG: bool = Field(default=False)
 
+    # Server (for programmatic runs)
+    HOST: str = Field(default="0.0.0.0", description="Server bind host")
+    PORT: int = Field(default=8000, ge=1, le=65535, description="Server port")
+
     # Secrets
     OPENAI_API_KEY: SecretStr
 

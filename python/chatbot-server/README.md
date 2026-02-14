@@ -10,15 +10,22 @@ Python backend for the smart AI chatbot (FastAPI, LangChain, LangGraph).
 ## Quick Start
 
 1. Create `.env` with `OPENAI_API_KEY=...`
-2. Run the CLI chat interface:
+2. Run the CLI or API server:
 
 ```bash
+# CLI chat
 uv run python src/main.py
 # or
 ./run_dev.sh
+
+# API server
+./run_server.sh
+# or
+uv run uvicorn src.server.app:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Type `quit` or `exit` or `q` to end the conversation.
+- **CLI**: Type `quit`, `exit`, or `q` to end the conversation.
+- **API**: `POST /api/v1/chat` with `{"messages": [{"role": "user", "content": "..."}]}` — docs at `/docs`.
 
 ## Development
 
