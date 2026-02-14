@@ -13,6 +13,6 @@ LLMProviderModelId = Literal["gpt-5.2-2025-12-11"]
 
 LLMModelIdMap = Mapping[LLMModelSelection, LLMProviderModelId]
 
-LLM_MODEL_TO_PROVIDER: LLMModelIdMap = {
+LLM_SELECTION_TO_MODEL_ID: LLMModelIdMap = {
     LLMModelSelection.STANDARD: "gpt-5.2-2025-12-11",
 }
