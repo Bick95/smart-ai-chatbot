@@ -5,20 +5,17 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.chatbot.graph import get_agent
 from src.server.routers.chat import router as chat_router
 from src.utils.clients import create_clients
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Create shared clients and agent on startup; cleanup on shutdown."""
+    """Create shared clients on startup; agent is created per request."""
     clients = create_clients()
-    agent = get_agent(clients)
     app.state.clients = clients
-    app.state.agent = agent
     yield
-    # No explicit cleanup needed for clients/agent
+    # No explicit cleanup needed for clients
 
 
 def create_app() -> FastAPI:

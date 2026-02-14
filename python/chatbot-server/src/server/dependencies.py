@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import Request
+from fastapi import Depends, Request
 
+from src.chatbot.graph import get_agent
 from src.utils.types.clients import Clients
 
 
@@ -13,6 +14,8 @@ def get_clients(request: Request) -> Clients:
     return clients
 
 
-def get_agent_graph(request: Request):
-    """Retrieve the compiled agent graph from app state."""
-    return request.app.state.agent
+def get_agent_graph(
+    clients: Clients = Depends(get_clients),
+):
+    """Create a fresh agent instance per request to avoid data leakage between users."""
+    return get_agent(clients)
