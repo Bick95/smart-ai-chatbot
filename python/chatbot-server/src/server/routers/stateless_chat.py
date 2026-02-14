@@ -1,4 +1,4 @@
-"""Chat API router."""
+"""Stateless chat API router."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from src.utils.messages import to_langchain_messages
 logger = get_logger(__name__)
 
 
-router = APIRouter(prefix="/chat", tags=["chat"])
+router = APIRouter(prefix="/stateless_chat", tags=["stateless_chat"])
 
 _FALLBACK_CONTENT = (
     "Sorry, I cannot answer that right now. Please try again or try something different."
@@ -26,16 +26,17 @@ _FALLBACK_CONTENT = (
 
 
 @router.post("", response_model=ChatResponse)
-async def chat(
+async def stateless_chat(
     request: ChatRequest,
     agent: CompiledStateGraph[AgentState, None, AgentState, AgentState] = Depends(
         get_agent_graph
     ),
 ) -> ChatResponse:
     """
-    Send messages to the chatbot and receive a reply.
+    Stateless chat: send messages and receive a reply.
 
-    Provide the conversation history; the assistant's response will be returned.
+    You must provide the full conversation history each time.
+    No session state is kept between requests.
     """
     try:
         messages = to_langchain_messages([m.model_dump() for m in request.messages])
@@ -74,6 +75,6 @@ async def chat(
         return ChatResponse(content=content)
 
     except Exception:
-        logger.exception("Error in chat.")
+        logger.exception("Error in stateless_chat.")
 
         return ChatResponse(content=_FALLBACK_CONTENT)

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.server.routers.chat import router as chat_router
+from src.server.routers.stateless_chat import router as stateless_chat_router
 from src.utils.clients import create_clients
 
 
@@ -37,7 +37,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    app.include_router(chat_router, prefix="/api/v1")
+    app.include_router(stateless_chat_router, prefix="/api/v1")
 
     @app.get("/health")
     def health() -> dict[str, str]:
