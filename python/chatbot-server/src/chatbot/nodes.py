@@ -1,4 +1,4 @@
-from langchain.messages import SystemMessage, ToolMessage
+from langchain.messages import AIMessage, SystemMessage, ToolMessage
 from src.chatbot.state import AgentState, AgentStateUpdate
 from src.chatbot.types.llm_models import LLMModelSelection
 from src.chatbot.types.agent_nodes import AgentNodes
@@ -15,27 +15,44 @@ def get_agent_nodes(clients: Clients, agent_tools: AgentTools) -> AgentNodes:
 
     async def llm_node(state: AgentState) -> AgentStateUpdate:
         """LLM decides whether to call a tool or not"""
-        response = await model_with_tools.ainvoke(
-            [
-                SystemMessage(
-                    content="You are a helpful assistant who uses its tools to assist the user on their tasks."
-                )
-            ]
-            + state["messages"]
-        )
-        return {"messages": [response]}
+        try:
+            response = await model_with_tools.ainvoke(
+                [
+                    SystemMessage(
+                        content="You are a helpful assistant who uses its tools to assist the user on their tasks."
+                    )
+                ]
+                + state["messages"]
+            )
+            return {"messages": [response]}
+
+        except Exception as e:
+            print(f"Error in llm_node: {e}. Returning fallback message.")
+            return {
+                "messages": [
+                    AIMessage(
+                        content="Sorry, I cannot answer that right now. Please try again or try something different."
+                    )
+                ]
+            }
 
     async def tool_node(state: AgentState) -> AgentStateUpdate:
         """Performs the tool call"""
         result = []
         for tool_call in state["messages"][-1].tool_calls:
-            tool = agent_tools.tools_by_name[tool_call["name"]]
-            observation = await tool.ainvoke(tool_call["args"])
-            result.append(
-                ToolMessage(
-                    content=observation, tool_call_id=tool_call["id"]
+            try:
+                tool = agent_tools.tools_by_name[tool_call["name"]]
+                observation = await tool.ainvoke(tool_call["args"])
+                result.append(
+                    ToolMessage(content=observation, tool_call_id=tool_call["id"])
                 )
-            )
+
+            except Exception as e:
+                print(f"Error for tool call: {tool_call} in tool_node: {e}. Returning fallback message.")
+                result.append(
+                    ToolMessage(content="Sorry, I cannot perform that task right now. Please double-check your input and try again or try something different if this tool call keeps failing.", tool_call_id=tool_call["id"])
+                )
+
         return {"messages": result}
 
     return {
