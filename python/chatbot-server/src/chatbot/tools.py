@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+from langchain.messages import AIMessage, HumanMessage, SystemMessage
 from langchain.tools import tool
 
-from src.utils.types.clients import Clients
 from src.chatbot.types.agent_tools import AgentTools
+from src.chatbot.types.llm_models import LLMModelSelection
+from src.utils.types.clients import Clients
 
 
 def get_agent_tools(clients: Clients) -> AgentTools:
+
+    model_small = clients.llm_models[LLMModelSelection.SMALL]
+
     @tool
     async def multiply(a: int, b: int) -> int:
         """Multiply `a` and `b`."""
@@ -27,7 +32,29 @@ def get_agent_tools(clients: Clients) -> AgentTools:
         """Subtract `b` from `a`."""
         return b - a
 
-    tools = [multiply, divide, add, subtract]
+    @tool
+    async def summarize_text(input_text: str) -> str:
+        """
+        Produce a plain, pure summary of the given input text.
+        Use this when the user asks to summarize text, articles, or documents.
+        """
+        if not input_text:
+            return ""
+
+        messages = [
+            SystemMessage(
+                content="You are a helpful assistant summarizing texts. "
+                "Summarize the text provided in the human message. "
+                "Output only the pure summary, nothing else."
+            ),
+            HumanMessage(content=input_text),
+        ]
+
+        response: AIMessage = await model_small.ainvoke(messages)
+
+        return response.content if isinstance(response.content, str) else str(response.content)
+
+    tools = [multiply, divide, add, subtract, summarize_text]
 
     tools_by_name = {t.name: t for t in tools}
 
