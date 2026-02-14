@@ -3,27 +3,14 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage
 
 from src.server.dependencies import get_agent_graph
 from src.server.schemas.chat import ChatRequest, ChatResponse
+from src.server.utils import to_langchain_messages
+
 
 router = APIRouter(prefix="/chat", tags=["chat"])
-
-
-def _to_langchain_messages(messages: list[dict]) -> list[BaseMessage]:
-    """Convert API message format to LangChain messages."""
-    result: list[BaseMessage] = []
-    for msg in messages:
-        role = msg.get("role", "user")
-        content = msg.get("content", "") or ""
-        if role == "user":
-            result.append(HumanMessage(content=content))
-        elif role == "assistant":
-            result.append(AIMessage(content=content))
-        elif role == "system":
-            result.append(SystemMessage(content=content))
-    return result
 
 
 @router.post("", response_model=ChatResponse)
@@ -36,7 +23,7 @@ async def chat(
 
     Provide the conversation history; the assistant's response will be returned.
     """
-    messages = _to_langchain_messages([m.model_dump() for m in request.messages])
+    messages = to_langchain_messages([m.model_dump() for m in request.messages])
     # TODO: Add guardrails to prevent abuse or misuse of the API
     result = await agent.ainvoke({"messages": messages})
     result_messages = result["messages"]
