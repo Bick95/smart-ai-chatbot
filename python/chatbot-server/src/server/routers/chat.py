@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 from langchain_core.messages import AIMessage
-
+from langgraph.graph.state import CompiledStateGraph
+from src.chatbot.state import AgentState
 from src.server.dependencies import get_agent_graph
 from src.server.schemas.chat import ChatRequest, ChatResponse
 from src.server.utils import to_langchain_messages
@@ -16,7 +17,7 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 @router.post("", response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
-    agent=Depends(get_agent_graph),
+    agent: CompiledStateGraph[AgentState, None, AgentState, AgentState] = Depends(get_agent_graph),
 ) -> ChatResponse:
     """
     Send messages to the chatbot and receive a reply.
