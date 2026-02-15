@@ -14,12 +14,12 @@ Python backend for the smart AI chatbot (FastAPI, LangChain, LangGraph).
 
 ```bash
 # CLI chat
-uv run python src/main.py
+./run_dev_cli.sh
 # or
-./run_dev.sh
+uv run python src/main.py
 
 # API server
-./run_server.sh
+./run_dev_server.sh
 # or
 uv run uvicorn src.server.app:app --reload --host 0.0.0.0 --port 8000
 ```
