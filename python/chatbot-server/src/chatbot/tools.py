@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from langchain.messages import AIMessage, HumanMessage, SystemMessage
 from langchain.tools import tool
 
@@ -34,6 +36,14 @@ def get_agent_tools(clients: Clients) -> AgentTools:
         return b - a
 
     @tool
+    async def get_current_datetime() -> str:
+        """
+        Return the current date and time (uses the system's local time).
+        Use this when the user asks what day it is, what date, what time, or similar.
+        """
+        return datetime.now().strftime("%A, %B %d, %Y, %H:%M:%S")
+
+    @tool
     async def summarize_text(input_text: str) -> str:
         """
         Produce a plain, pure summary of the given input text.
@@ -52,7 +62,7 @@ def get_agent_tools(clients: Clients) -> AgentTools:
 
         return response.content if isinstance(response.content, str) else str(response.content)
 
-    tools = [multiply, divide, add, subtract, summarize_text]
+    tools = [multiply, divide, add, subtract, get_current_datetime, summarize_text]
 
     tools_by_name = {t.name: t for t in tools}
 
