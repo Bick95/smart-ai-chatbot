@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from src.server.middleware import (
+    SANITIZED_500_MESSAGE,
     RequestLoggingMiddleware,
     sanitized_exception_handler,
 )
@@ -39,7 +40,7 @@ class TestSanitizedExceptionHandler:
     ):
         response = client_with_handler.get("/raise")
         assert response.status_code == 500
-        assert response.json() == {"detail": "Internal server error"}
+        assert response.json() == {"detail": SANITIZED_500_MESSAGE}
 
     def test_exception_details_not_exposed(self, client_with_handler):
         response = client_with_handler.get("/raise")
