@@ -1,7 +1,8 @@
-from src.chatbot.state import AgentState, AgentStateUpdate
 from typing import Awaitable, Callable, TypeAlias, Union
+
 from langchain_core.runnables import Runnable
 
+from src.chatbot.state import AgentState, AgentStateUpdate
 
 NodeUpdate: TypeAlias = AgentStateUpdate
 NodeReturn: TypeAlias = Union[NodeUpdate, Awaitable[NodeUpdate]]

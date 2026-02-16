@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Mapping
-import httpx
 
+import httpx
 from langchain_core.language_models import BaseChatModel
 
-from src.chatbot.types.llm_models import LLMModelSelection, LLMModelIdMap
+from src.chatbot.types.llm_models import LLMModelIdMap, LLMModelSelection
 
 
 @dataclass(frozen=True, slots=True)
