@@ -8,7 +8,9 @@ from src.chatbot.utils import should_continue
 from src.utils.types.clients import Clients
 
 
-def get_agent(clients: Clients) -> CompiledStateGraph[AgentState, None, AgentState, AgentState]:
+def get_agent(
+    clients: Clients,
+) -> CompiledStateGraph[AgentState, None, AgentState, AgentState]:
 
     # Construct the tools
     agent_tools = get_agent_tools(clients)
@@ -23,11 +25,7 @@ def get_agent(clients: Clients) -> CompiledStateGraph[AgentState, None, AgentSta
 
     # Add edges to connect nodes
     agent_builder.add_edge(START, "llm_node")
-    agent_builder.add_conditional_edges(
-        "llm_node",
-        should_continue,
-        ["tool_node", END]
-    )
+    agent_builder.add_conditional_edges("llm_node", should_continue, ["tool_node", END])
     agent_builder.add_edge("tool_node", "llm_node")
 
     # Compile the agent

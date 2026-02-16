@@ -60,7 +60,11 @@ def get_agent_tools(clients: Clients) -> AgentTools:
 
         response: AIMessage = await model_small.ainvoke(messages)
 
-        return response.content if isinstance(response.content, str) else str(response.content)
+        return (
+            response.content
+            if isinstance(response.content, str)
+            else str(response.content)
+        )
 
     tools = [multiply, divide, add, subtract, get_current_datetime, summarize_text]
 
@@ -69,7 +73,4 @@ def get_agent_tools(clients: Clients) -> AgentTools:
     if len(tools_by_name) != len(tools):
         raise ValueError("Duplicate tool names detected.")
 
-    return AgentTools(
-        tools=tools,
-        tools_by_name=tools_by_name
-    )
+    return AgentTools(tools=tools, tools_by_name=tools_by_name)

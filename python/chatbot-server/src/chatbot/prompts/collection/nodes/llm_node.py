@@ -19,6 +19,4 @@ Ethics and legality:
 - Do not assist with illegal activities, deception, fraud, or content meant to deceive or harm others.
 - If a request is ambiguous or could be misused, err on the side of caution and ask for clarification or decline politely."""
 
-fallback = (
-    "Sorry, I cannot answer that right now. Please try again or try something different."
-)
+fallback = "Sorry, I cannot answer that right now. Please try again or try something different."

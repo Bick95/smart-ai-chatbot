@@ -10,6 +10,7 @@ ToolName: TypeAlias = str
 Tools: TypeAlias = Sequence[Tool]
 ToolsByName: TypeAlias = Mapping[ToolName, Tool]
 
+
 @dataclass(frozen=True, slots=True)
 class AgentTools:
     tools: Tools

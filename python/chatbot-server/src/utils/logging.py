@@ -9,7 +9,11 @@ def get_logger(name: str, *, debug: bool | None = None) -> logging.Logger:
         raise ValueError("Logger name must be non-empty")
 
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG if (debug if debug is not None else settings.DEBUG) else logging.INFO)
+    logger.setLevel(
+        logging.DEBUG
+        if (debug if debug is not None else settings.DEBUG)
+        else logging.INFO
+    )
 
     if not logger.handlers:
         handler = logging.StreamHandler()

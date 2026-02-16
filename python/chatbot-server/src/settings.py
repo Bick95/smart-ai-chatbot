@@ -10,7 +10,7 @@ class Settings(BaseSettings):
         _env_file_encoding="utf-8",
         env_prefix="",
         env_nested_delimiter=",",
-        extra="ignore"
+        extra="ignore",
     )
 
     DEBUG: bool = Field(default=False)
