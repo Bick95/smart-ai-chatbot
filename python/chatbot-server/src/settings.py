@@ -19,6 +19,20 @@ class Settings(BaseSettings):
     HOST: str = Field(default="0.0.0.0", description="Server bind host")
     PORT: int = Field(default=8000, ge=1, le=65535, description="Server port")
 
+    # Input limits for chat API
+    MAX_CHAT_MESSAGES: int = Field(
+        default=50,
+        ge=1,
+        le=500,
+        description="Maximum number of messages per chat request",
+    )
+    MAX_MESSAGE_CONTENT_LENGTH: int = Field(
+        default=16_384,
+        ge=1,
+        le=1_000_000,
+        description="Maximum character length per message content",
+    )
+
     # CORS (comma-separated origins, or * for all; * is insecure in production)
     CORS_ORIGINS: str = Field(
         default="*",
