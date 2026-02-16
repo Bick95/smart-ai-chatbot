@@ -43,7 +43,10 @@ def get_agent_nodes(clients: Clients, agent_tools: AgentTools) -> AgentNodes:
                 tool = agent_tools.tools_by_name[tool_call["name"]]
                 observation = await tool.ainvoke(tool_call["args"])
                 result.append(
-                    ToolMessage(content=observation, tool_call_id=tool_call["id"])
+                    ToolMessage(
+                        content=str(observation),
+                        tool_call_id=tool_call["id"],
+                    )
                 )
 
             except Exception:
