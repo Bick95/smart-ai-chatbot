@@ -1,0 +1,5 @@
+# Files to be globally ignored
+
+## Environment files
+**/*.env
+**/*.env.*

@@ -1,4 +1,6 @@
-# Python-generated files
+# Files to be ignored in the context of Python
+
+## Python-generated files
 **/__pycache__/
 **/*.py[oc]
 **/build/
@@ -6,12 +8,12 @@
 **/wheels/
 **/*.egg-info
 
-# Virtual environments
+## Virtual environments
 **/.venv/
 
-# Environment files
+## Environment files
 **/*.env
 **/*.env.*
 
-# Testing
+## Testing
 **/.coverage
