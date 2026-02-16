@@ -10,6 +10,7 @@ class LLMModelSelection(str, Enum):
     STANDARD = "llm_standard"
     SMALL = "llm_small"
 
+
 LLMProviderModelId = Literal["gpt-5.2-2025-12-11", "gpt-4o-mini"]
 
 LLMModelIdMap = Mapping[LLMModelSelection, LLMProviderModelId]
