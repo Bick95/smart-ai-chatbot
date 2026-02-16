@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import threading
-import time
 
 from src.chatbot.prompts.sources.base import PromptSource
 from src.chatbot.prompts.sources.file import FilePromptSource
