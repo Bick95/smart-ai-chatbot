@@ -7,7 +7,6 @@ from typing import Any
 
 import httpx
 
-from src.chatbot.prompts.sources.base import PromptSource
 from src.chatbot.prompts.sources.refreshable import RefreshablePromptSource
 from src.utils.logging import get_logger
 

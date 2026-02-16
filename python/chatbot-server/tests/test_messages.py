@@ -1,7 +1,7 @@
 """Tests for message conversion utilities."""
 
 import pytest
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from src.utils.messages import to_langchain_messages
 
