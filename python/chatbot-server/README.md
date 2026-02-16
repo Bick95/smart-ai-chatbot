@@ -43,9 +43,10 @@ Rate limiting is expected to be implemented outside this service (e.g. at a cent
 
 ## Development
 
-| Command            | Description              |
-|--------------------|--------------------------|
-| `uv sync`          | Install/sync dependencies |
-| `uv run pytest`    | Run tests                |
-| `uv run black .`   | Format code              |
-| `uv run ruff check`| Lint code                |
+| Command             | Description                |
+|---------------------|----------------------------|
+| `uv sync`           | Install/sync dependencies  |
+| `uv run pytest`     | Run tests                  |
+| `uv run black .`    | Format code                |
+| `uv run isort .`    | Sort imports               |
+| `uv run ruff check` | Lint code                  |

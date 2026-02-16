@@ -4,7 +4,6 @@ from enum import Enum
 from typing import Literal, Mapping
 
 
-
 class LLMModelSelection(str, Enum):
     STANDARD = "llm_standard"
     SMALL = "llm_small"
