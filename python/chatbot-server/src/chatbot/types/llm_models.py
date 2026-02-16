@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Mapping, Literal
+from typing import Literal, Mapping
 
 from langchain_core.language_models import BaseChatModel
 

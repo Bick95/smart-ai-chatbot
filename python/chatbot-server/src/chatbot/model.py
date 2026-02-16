@@ -1,6 +1,7 @@
 from langchain.chat_models import init_chat_model
-from src.chatbot.types.llm_models import LLMProviderModelId
 from langchain_core.language_models import BaseChatModel
+
+from src.chatbot.types.llm_models import LLMProviderModelId
 
 
 def get_model(

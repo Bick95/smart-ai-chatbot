@@ -5,7 +5,6 @@ from typing import Mapping, Sequence, TypeAlias
 
 from langchain_core.tools import BaseTool
 
-
 Tool: TypeAlias = BaseTool
 ToolName: TypeAlias = str
 Tools: TypeAlias = Sequence[Tool]

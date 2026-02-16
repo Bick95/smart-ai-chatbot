@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from src.chatbot.model import get_model
-from src.chatbot.types.llm_models import LLMModelSelection, LLM_SELECTION_TO_MODEL_ID
-from src.utils.types.clients import Clients
+from src.chatbot.types.llm_models import LLM_SELECTION_TO_MODEL_ID, LLMModelSelection
 from src.settings import settings
+from src.utils.types.clients import Clients
 
 
 def create_clients() -> Clients:

@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from fastapi import Depends, Request
-
 from langgraph.graph.state import CompiledStateGraph
-from src.chatbot.state import AgentState
+
 from src.chatbot.graph import get_agent
+from src.chatbot.state import AgentState
 from src.utils.types.clients import Clients
 
 
