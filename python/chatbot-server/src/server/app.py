@@ -12,6 +12,10 @@ from src.chatbot.prompts import (
     get_prompt_handler,
     set_prompt_handler,
 )
+from src.server.middleware import (
+    RequestLoggingMiddleware,
+    sanitized_exception_handler,
+)
 from src.server.routers.stateless_chat import router as stateless_chat_router
 from src.settings import settings
 from src.utils.clients import create_clients
@@ -54,6 +58,9 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if settings.ENABLE_DOCS else None,
     )
 
+    app.add_exception_handler(Exception, sanitized_exception_handler)
+
+    app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
