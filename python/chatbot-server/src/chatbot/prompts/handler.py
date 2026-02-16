@@ -8,6 +8,9 @@ import time
 from src.chatbot.prompts.sources.base import PromptSource
 from src.chatbot.prompts.sources.file import FilePromptSource
 from src.chatbot.prompts.sources.refreshable import RefreshablePromptSource
+from src.utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class PromptHandler:
@@ -78,7 +81,10 @@ class PromptHandler:
                     try:
                         source.refresh()
                     except Exception:
-                        pass  # Log and continue? Handler has no logger
+                        logger.exception(
+                            "Error refreshing prompt source %s",
+                            type(source).__name__,
+                        )
 
         self._refresh_thread = threading.Thread(target=_run, daemon=True)
         self._refresh_thread.start()

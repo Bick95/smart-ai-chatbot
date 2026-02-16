@@ -9,6 +9,9 @@ import httpx
 
 from src.chatbot.prompts.sources.base import PromptSource
 from src.chatbot.prompts.sources.refreshable import RefreshablePromptSource
+from src.utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class HttpPromptSource(RefreshablePromptSource):
@@ -54,10 +57,27 @@ class HttpPromptSource(RefreshablePromptSource):
                 resp.raise_for_status()
                 data = resp.json()
         except Exception:
+            logger.exception(
+                "Failed to fetch prompts from %s; keeping existing cache",
+                self._base_url,
+            )
             return  # Keep existing cache on failure; never clear it
         if isinstance(data, dict):
+            new_cache = {k: str(v) for k, v in data.items() if isinstance(v, str)}
             with self._lock:
-                self._cache = {k: str(v) for k, v in data.items() if isinstance(v, str)}
+                old_keys = set(self._cache.keys())
+                new_keys = set(new_cache.keys())
+                if old_keys and old_keys != new_keys:
+                    added = new_keys - old_keys
+                    removed = old_keys - new_keys
+                    logger.warning(
+                        "Prompt key mismatch after refresh from %s: "
+                        "added=%s, removed=%s",
+                        self._base_url,
+                        sorted(added) if added else None,
+                        sorted(removed) if removed else None,
+                    )
+                self._cache = new_cache
 
     def get(self, prompt_id: str, **variables: Any) -> str | None:
         template = self._cache.get(prompt_id)
@@ -66,6 +86,11 @@ class HttpPromptSource(RefreshablePromptSource):
         if variables:
             try:
                 return template.format(**variables)
-            except KeyError:
+            except KeyError as e:
+                logger.warning(
+                    "Missing variable %s for prompt %s; returning unformatted template",
+                    e,
+                    prompt_id,
+                )
                 return template
         return template
