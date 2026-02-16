@@ -17,3 +17,7 @@
 
 ## Testing
 **/.coverage
+
+## Linting / Formatting
+**/.pytest_cache/
+**/.ruff_cache/
