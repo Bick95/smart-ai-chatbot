@@ -50,8 +50,8 @@ def create_app() -> FastAPI:
         description="Smart AI chatbot with tool-calling support",
         version="0.1.0",
         lifespan=lifespan,
-        docs_url="/docs",
-        redoc_url="/redoc",
+        docs_url="/docs" if settings.ENABLE_DOCS else None,
+        redoc_url="/redoc" if settings.ENABLE_DOCS else None,
     )
 
     app.add_middleware(

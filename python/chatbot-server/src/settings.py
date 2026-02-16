@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     HOST: str = Field(default="0.0.0.0", description="Server bind host")
     PORT: int = Field(default=8000, ge=1, le=65535, description="Server port")
 
+    # API docs (Swagger/ReDoc); disable in production for security
+    ENABLE_DOCS: bool = Field(
+        default=True,
+        description="Expose /docs and /redoc endpoints",
+    )
+
     # Input limits for chat API
     MAX_CHAT_MESSAGES: int = Field(
         default=50,
