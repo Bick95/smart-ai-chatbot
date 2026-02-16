@@ -6,6 +6,9 @@ import importlib
 from typing import Any
 
 from src.chatbot.prompts.sources.base import PromptSource
+from src.utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class FilePromptSource(PromptSource):
@@ -34,6 +37,11 @@ class FilePromptSource(PromptSource):
         if variables:
             try:
                 return template.format(**variables)
-            except KeyError:
+            except KeyError as e:
+                logger.warning(
+                    "Missing variable %s for prompt %s; returning unformatted template",
+                    e,
+                    prompt_id,
+                )
                 return template
         return template
