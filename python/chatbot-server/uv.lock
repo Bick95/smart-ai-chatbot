@@ -137,6 +137,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "langchain" },
     { name = "langchain-core" },
     { name = "langchain-openai" },
@@ -149,7 +150,6 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "black" },
-    { name = "httpx" },
     { name = "isort" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -160,6 +160,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.128.8" },
+    { name = "httpx", specifier = ">=0.27.0" },
     { name = "langchain", specifier = ">=1.2.10" },
     { name = "langchain-core", specifier = ">=1.2.11" },
     { name = "langchain-openai", specifier = ">=1.1.9" },
@@ -172,7 +173,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "black", specifier = ">=25.1.0" },
-    { name = "httpx", specifier = ">=0.27.0" },
     { name = "isort", specifier = ">=6.0.1" },
     { name = "pytest", specifier = ">=8.4.1" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },

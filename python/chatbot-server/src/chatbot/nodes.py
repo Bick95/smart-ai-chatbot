@@ -1,5 +1,6 @@
 from langchain.messages import AIMessage, SystemMessage, ToolMessage
 
+from src.chatbot.prompts import get_prompt_handler
 from src.chatbot.state import AgentState, AgentStateUpdate
 from src.chatbot.types.agent_nodes import AgentNodes
 from src.chatbot.types.agent_tools import AgentTools
@@ -9,8 +10,8 @@ from src.utils.types.clients import Clients
 
 logger = get_logger(__name__)
 
+prompts_handler = get_prompt_handler()
 
-# TODO: Adjust the prompts
 
 def get_agent_nodes(clients: Clients, agent_tools: AgentTools) -> AgentNodes:
     model_with_tools = clients.llm_models[LLMModelSelection.STANDARD].bind_tools(
@@ -21,11 +22,7 @@ def get_agent_nodes(clients: Clients, agent_tools: AgentTools) -> AgentNodes:
         """LLM decides whether to call a tool or not"""
         try:
             response = await model_with_tools.ainvoke(
-                [
-                    SystemMessage(
-                        content="You are a helpful assistant who uses its tools to assist the user on their tasks."
-                    )
-                ]
+                [SystemMessage(content=prompts_handler.get("nodes.llm_node.system"))]
                 + state["messages"]
             )
             return {"messages": [response]}
@@ -34,9 +31,7 @@ def get_agent_nodes(clients: Clients, agent_tools: AgentTools) -> AgentNodes:
             logger.exception("Error in llm_node. Returning fallback message.")
             return {
                 "messages": [
-                    AIMessage(
-                        content="Sorry, I cannot answer that right now. Please try again or try something different."
-                    )
+                    AIMessage(content=prompts_handler.get("nodes.llm_node.fallback"))
                 ]
             }
 
@@ -57,7 +52,10 @@ def get_agent_nodes(clients: Clients, agent_tools: AgentTools) -> AgentNodes:
                     tool_call,
                 )
                 result.append(
-                    ToolMessage(content="Sorry, I cannot perform that task right now. Please double-check your input and try again or try something different if this tool call keeps failing.", tool_call_id=tool_call["id"])
+                    ToolMessage(
+                        content=prompts_handler.get("nodes.tool_node.fallback"),
+                        tool_call_id=tool_call["id"],
+                    )
                 )
 
         return {"messages": result}

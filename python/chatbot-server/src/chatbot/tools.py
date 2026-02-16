@@ -3,6 +3,7 @@ from __future__ import annotations
 from langchain.messages import AIMessage, HumanMessage, SystemMessage
 from langchain.tools import tool
 
+from src.chatbot.prompts import get_prompt_handler
 from src.chatbot.types.agent_tools import AgentTools
 from src.chatbot.types.llm_models import LLMModelSelection
 from src.utils.types.clients import Clients
@@ -41,12 +42,9 @@ def get_agent_tools(clients: Clients) -> AgentTools:
         if not input_text:
             return ""
 
+        prompts_handler = get_prompt_handler()
         messages = [
-            SystemMessage(
-                content="You are a helpful assistant summarizing texts. "
-                "Summarize the text provided in the human message. "
-                "Output only the pure summary, nothing else."
-            ),
+            SystemMessage(content=prompts_handler.get("tools.summarize_text.system")),
             HumanMessage(content=input_text),
         ]
 

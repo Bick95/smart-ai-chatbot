@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends
 from langchain_core.messages import AIMessage, AnyMessage
 from langgraph.graph.state import CompiledStateGraph
 
+from src.chatbot.prompts import get_prompt_handler
 from src.chatbot.state import AgentState
 from src.server.dependencies import get_agent_graph
 from src.server.schemas.chat import ChatRequest, ChatResponse
@@ -17,12 +18,7 @@ from src.utils.messages import to_langchain_messages
 
 logger = get_logger(__name__)
 
-
 router = APIRouter(prefix="/stateless_chat", tags=["stateless_chat"])
-
-_FALLBACK_CONTENT = (
-    "Sorry, I cannot answer that right now. Please try again or try something different."
-)
 
 
 @router.post("", response_model=ChatResponse)
@@ -77,4 +73,6 @@ async def stateless_chat(
     except Exception:
         logger.exception("Error in stateless_chat.")
 
-        return ChatResponse(content=_FALLBACK_CONTENT)
+        return ChatResponse(
+            content=get_prompt_handler().get("server.stateless_chat.fallback")
+        )
