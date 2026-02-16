@@ -37,6 +37,10 @@ curl -X POST http://localhost:8000/api/v1/stateless_chat \
 
 shall produce a response similar to: `{"content":"3 + 5 = 8"}.`
 
+## Production
+
+Rate limiting is expected to be implemented outside this service (e.g. at a central reverse proxy or API gateway). Do not expose the server directly to the public without such protection.
+
 ## Development
 
 | Command            | Description              |
