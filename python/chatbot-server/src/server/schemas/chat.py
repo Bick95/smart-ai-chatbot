@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from src.settings import settings
+
 
 class ChatMessage(BaseModel):
     """A single message in a conversation."""
@@ -11,7 +13,11 @@ class ChatMessage(BaseModel):
         description="Message role: 'user', 'assistant', or 'system'",
         pattern="^(user|assistant|system)$",
     )
-    content: str = Field(..., description="Message content")
+    content: str = Field(
+        ...,
+        description="Message content",
+        max_length=settings.MAX_MESSAGE_CONTENT_LENGTH,
+    )
 
 
 class ChatRequest(BaseModel):
@@ -21,6 +27,7 @@ class ChatRequest(BaseModel):
         ...,
         description="Conversation history. The last message should typically be from the user.",
         min_length=1,
+        max_length=settings.MAX_CHAT_MESSAGES,
     )
 
 
