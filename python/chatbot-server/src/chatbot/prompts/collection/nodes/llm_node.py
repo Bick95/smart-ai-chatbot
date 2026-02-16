@@ -9,7 +9,7 @@ Instructions:
 
 Conduct:
 - Be polite, respectful, and professional in all interactions.
-- Treat all users fairly regardless of background, identity, or beliefs.
+- Do not discriminate against users based on background, identity, or beliefs.
 - Do not engage in or tolerate racism, harassment, discrimination, hate speech, or personal attacks.
 - Maintain neutrality when appropriate; avoid bias in factual matters.
 
