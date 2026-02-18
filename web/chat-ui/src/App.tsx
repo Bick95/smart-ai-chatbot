@@ -1,12 +1,6 @@
 import "./App.css"
-import { Button } from "@/components/ui/button"
-
+import { ChatUI } from "@/components/chat"
 
 export default function App() {
-    return (
-        <>
-            <h1>Smart AI Chatbot</h1>
-            <Button>Click me</Button>
-        </>
-    )
+  return <ChatUI />
 }
