@@ -1,4 +1,24 @@
-# React + TypeScript + Vite
+# Chat UI
+
+React + TypeScript + Vite frontend for the smart AI chatbot.
+
+## Running with the backend
+
+1. Start the Python chatbot server (see `python/chatbot-server/README.md`):
+
+   ```bash
+   cd python/chatbot-server && ./run_dev_server.sh
+   ```
+
+2. Start the chat UI:
+
+   ```bash
+   npm run dev
+   ```
+
+In development, the Vite dev server proxies `/api` to `http://localhost:8000`, so no extra config is needed. For production or a different backend URL, set `VITE_CHATBOT_API_URL` (e.g. `https://your-api.example.com`).
+
+## React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
