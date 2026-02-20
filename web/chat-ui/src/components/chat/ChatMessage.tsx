@@ -23,7 +23,7 @@ export function ChatMessage({ message, className }: ChatMessageProps) {
       className={cn(
         "w-fit max-w-[95%] rounded-2xl",
         isUser
-          ? "ml-auto flex-row-reverse bg-primary text-primary-foreground"
+          ? "ml-auto flex-row-reverse border border-border bg-muted/80 text-foreground"
           : "mr-auto flex-row bg-muted text-foreground",
         className
       )}
