@@ -1,16 +1,16 @@
-import * as React from "react"
+import type { ComponentProps, ComponentRef, RefObject } from "react"
 import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
-type ScrollAreaViewportElement = React.ComponentRef<
+type ScrollAreaViewportElement = ComponentRef<
   typeof ScrollAreaPrimitive.Viewport
 >
 
 interface ScrollAreaProps
-  extends React.ComponentProps<typeof ScrollAreaPrimitive.Root> {
+  extends ComponentProps<typeof ScrollAreaPrimitive.Root> {
   /** Optional ref to the scroll viewport for programmatic scrolling. */
-  viewportRef?: React.RefObject<ScrollAreaViewportElement | null>
+  viewportRef?: RefObject<ScrollAreaViewportElement | null>
 }
 
 function ScrollArea({
@@ -42,7 +42,7 @@ function ScrollBar({
   className,
   orientation = "vertical",
   ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>) {
+}: ComponentProps<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>) {
   return (
     <ScrollAreaPrimitive.ScrollAreaScrollbar
       data-slot="scroll-area-scrollbar"

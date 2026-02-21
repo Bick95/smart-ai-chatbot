@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from "react"
+import type { KeyboardEvent } from "react"
 import { useForm } from "@tanstack/react-form"
 import * as z from "zod"
 
@@ -43,7 +43,7 @@ export function ChatInput({
     },
   })
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       form.handleSubmit()

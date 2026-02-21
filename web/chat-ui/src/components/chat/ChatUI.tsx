@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from "react"
+import { useCallback, useEffect, useRef } from "react"
 
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ItemGroup } from "@/components/ui/item"
@@ -29,7 +29,7 @@ export function ChatUI({
     onRetry,
     isRetrying = false,
 }: ChatUIProps) {
-    const viewportRef = React.useRef<HTMLDivElement>(null)
+    const viewportRef = useRef<HTMLDivElement>(null)
     const createChat = useChatStore((s) => s.createChat)
     const setLoading = useChatStore((s) => s.setLoading)
     const getCurrentChat = useChatStore((s) => s.getCurrentChat)
@@ -39,13 +39,13 @@ export function ChatUI({
     const messages = currentChat?.messages ?? []
 
     // Ensure we always have a current chat for single-chat UI
-    React.useEffect(() => {
+    useEffect(() => {
         if (!currentChat) {
             createChat(true)
         }
     }, [currentChat, createChat])
 
-    React.useEffect(() => {
+    useEffect(() => {
         const viewport = viewportRef.current
         if (!viewport) return
         viewport.scrollTo({
@@ -54,7 +54,7 @@ export function ChatUI({
         })
     }, [messages, isLoading, error])
 
-    const handleSubmit = React.useCallback(
+    const handleSubmit = useCallback(
         async (content: string) => {
             setLoading(true)
             try {
