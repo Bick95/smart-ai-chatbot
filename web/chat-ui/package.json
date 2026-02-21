@@ -18,6 +18,8 @@
     "radix-ui": "^1.4.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.4.1",
     "tailwindcss": "^4.1.18",
     "zod": "^4.3.6",
@@ -39,5 +41,8 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
     "vite": "^7.3.1"
+  },
+  "overrides": {
+    "minimatch": "^10.2.1"
   }
 }
