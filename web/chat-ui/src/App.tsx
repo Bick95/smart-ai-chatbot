@@ -1,62 +1,62 @@
-import { useCallback, useState } from "react"
-import "./App.css"
-import { sendChatMessages } from "@/api/chat"
-import { ChatUI } from "@/components/chat"
-import { useChatStore } from "@/stores/chat"
+import { useCallback, useState } from "react";
+import "./App.css";
+import { sendChatMessages } from "@/api/chat";
+import { ChatUI } from "@/components/chat";
+import { useChatStore } from "@/stores/chat";
 
 export default function App() {
-    const [error, setError] = useState<{ message: string } | null>(null)
-    const [isRetrying, setIsRetrying] = useState(false)
+    const [error, setError] = useState<{ message: string } | null>(null);
+    const [isRetrying, setIsRetrying] = useState(false);
 
     const onSendMessage = useCallback(async (content: string) => {
-        setError(null)
-        const store = useChatStore.getState()
-        store.addMessageToCurrent({ role: "user", content })
-        const chat = store.getCurrentChat()
+        setError(null);
+        const store = useChatStore.getState();
+        store.addMessageToCurrent({ role: "user", content });
+        const chat = store.getCurrentChat();
         const apiMessages =
-            chat?.messages.map((m) => ({ role: m.role, content: m.content })) ?? []
+            chat?.messages.map((m) => ({ role: m.role, content: m.content })) ??
+            [];
 
         try {
-            const reply = await sendChatMessages(apiMessages)
+            const reply = await sendChatMessages(apiMessages);
             if (store.currentChatId) {
                 store.addMessage(store.currentChatId, {
                     role: "assistant",
                     content: reply,
-                })
+                });
             }
         } catch (err) {
             setError({
-                message:
-                    err instanceof Error ? err.message : String(err),
-            })
+                message: err instanceof Error ? err.message : String(err),
+            });
         }
-    }, [])
+    }, []);
 
     const onRetry = useCallback(async () => {
-        setIsRetrying(true)
-        setError(null)
-        const store = useChatStore.getState()
-        const chat = store.getCurrentChat()
+        setIsRetrying(true);
+        setError(null);
+        const store = useChatStore.getState();
+        const chat = store.getCurrentChat();
         const apiMessages =
-            chat?.messages.map((m) => ({ role: m.role, content: m.content })) ?? []
+            chat?.messages.map((m) => ({ role: m.role, content: m.content })) ??
+            [];
 
         try {
-            const reply = await sendChatMessages(apiMessages)
+            const reply = await sendChatMessages(apiMessages);
             if (store.currentChatId) {
                 store.addMessage(store.currentChatId, {
                     role: "assistant",
                     content: reply,
-                })
+                });
             }
         } catch (err) {
             setError({
-                message:
-                    err instanceof Error ? err.message : String(err),
-            })
+                message: err instanceof Error ? err.message : String(err),
+            });
         } finally {
-            setIsRetrying(false)
+            setIsRetrying(false);
         }
-    }, [])
+    }, []);
 
     return (
         <ChatUI
@@ -65,5 +65,5 @@ export default function App() {
             onRetry={onRetry}
             isRetrying={isRetrying}
         />
-    )
+    );
 }

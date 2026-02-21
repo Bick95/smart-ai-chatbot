@@ -4,16 +4,16 @@ import {
     ItemContent,
     ItemMedia,
     ItemTitle,
-} from "@/components/ui/item"
-import { Button } from "@/components/ui/button"
-import { AlertCircle, RotateCcw } from "lucide-react"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/item";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, RotateCcw } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface ChatErrorProps {
-    message: string
-    onRetry: () => void
-    isRetrying?: boolean
-    className?: string
+    message: string;
+    onRetry: () => void;
+    isRetrying?: boolean;
+    className?: string;
 }
 
 export function ChatError({
@@ -28,7 +28,7 @@ export function ChatError({
             size="default"
             className={cn(
                 "w-fit max-w-[95%] border-destructive/50 bg-destructive/10 self-start rounded-2xl",
-                className
+                className,
             )}
         >
             <ItemMedia variant="icon" className="bg-destructive/20">
@@ -38,7 +38,9 @@ export function ChatError({
                 <ItemTitle className="text-destructive text-sm font-medium">
                     Request failed
                 </ItemTitle>
-                <p className="text-muted-foreground mt-0.5 text-sm">{message}</p>
+                <p className="text-muted-foreground mt-0.5 text-sm">
+                    {message}
+                </p>
             </ItemContent>
             <ItemActions>
                 <Button
@@ -56,5 +58,5 @@ export function ChatError({
                 </Button>
             </ItemActions>
         </Item>
-    )
+    );
 }

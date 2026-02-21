@@ -1,26 +1,26 @@
-"use client"
+"use client";
 
-import { useCallback, useEffect, useRef } from "react"
+import { useCallback, useEffect, useRef } from "react";
 
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { ItemGroup } from "@/components/ui/item"
-import { useChatStore } from "@/stores/chat"
-import { ChatError } from "./ChatError"
-import { ChatInput } from "./ChatInput"
-import { ChatMessage } from "./ChatMessage"
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ItemGroup } from "@/components/ui/item";
+import { useChatStore } from "@/stores/chat";
+import { ChatError } from "./ChatError";
+import { ChatInput } from "./ChatInput";
+import { ChatMessage } from "./ChatMessage";
 
 export interface ChatUIProps {
     /**
      * Called with the latest user message content.
      * Responsible for adding the user message, fetching the assistant reply, and adding it to the store.
      */
-    onSendMessage?: (latestUserMessage: string) => Promise<void>
+    onSendMessage?: (latestUserMessage: string) => Promise<void>;
     /** Error to show inline (not in message history). */
-    error?: { message: string } | null
+    error?: { message: string } | null;
     /** Called when user clicks Resubmit on the error. */
-    onRetry?: () => void
+    onRetry?: () => void;
     /** True while a retry is in progress. */
-    isRetrying?: boolean
+    isRetrying?: boolean;
 }
 
 export function ChatUI({
@@ -29,49 +29,52 @@ export function ChatUI({
     onRetry,
     isRetrying = false,
 }: ChatUIProps) {
-    const viewportRef = useRef<HTMLDivElement>(null)
-    const createChat = useChatStore((s) => s.createChat)
-    const setLoading = useChatStore((s) => s.setLoading)
-    const getCurrentChat = useChatStore((s) => s.getCurrentChat)
-    const isLoading = useChatStore((s) => s.isLoading)
+    const viewportRef = useRef<HTMLDivElement>(null);
+    const createChat = useChatStore((s) => s.createChat);
+    const setLoading = useChatStore((s) => s.setLoading);
+    const getCurrentChat = useChatStore((s) => s.getCurrentChat);
+    const isLoading = useChatStore((s) => s.isLoading);
 
-    const currentChat = getCurrentChat()
-    const messages = currentChat?.messages ?? []
+    const currentChat = getCurrentChat();
+    const messages = currentChat?.messages ?? [];
 
     // Ensure we always have a current chat for single-chat UI
     useEffect(() => {
         if (!currentChat) {
-            createChat(true)
+            createChat(true);
         }
-    }, [currentChat, createChat])
+    }, [currentChat, createChat]);
 
     useEffect(() => {
-        const viewport = viewportRef.current
-        if (!viewport) return
+        const viewport = viewportRef.current;
+        if (!viewport) return;
         viewport.scrollTo({
             top: viewport.scrollHeight,
             behavior: "smooth",
-        })
-    }, [messages, isLoading, error])
+        });
+    }, [messages, isLoading, error]);
 
     const handleSubmit = useCallback(
         async (content: string) => {
-            setLoading(true)
+            setLoading(true);
             try {
                 if (onSendMessage) {
-                    await onSendMessage(content)
+                    await onSendMessage(content);
                 }
             } finally {
-                setLoading(false)
+                setLoading(false);
             }
         },
-        [onSendMessage, setLoading]
-    )
+        [onSendMessage, setLoading],
+    );
 
     return (
         <div className="flex h-dvh flex-col bg-background">
             <main className="flex flex-1 flex-col overflow-hidden">
-                <ScrollArea className="min-h-0 flex-1" viewportRef={viewportRef}>
+                <ScrollArea
+                    className="min-h-0 flex-1"
+                    viewportRef={viewportRef}
+                >
                     <div className="mx-auto flex max-w-3xl flex-col gap-2 px-4 py-6">
                         {messages.length === 0 && !isLoading && !error ? (
                             <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
@@ -128,5 +131,5 @@ export function ChatUI({
                 </div>
             </main>
         </div>
-    )
+    );
 }
