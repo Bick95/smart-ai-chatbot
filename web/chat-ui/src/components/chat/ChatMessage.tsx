@@ -1,3 +1,7 @@
+import type { AnchorHTMLAttributes } from "react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+
 import {
   Item,
   ItemContent,
@@ -7,6 +11,26 @@ import {
 import { cn } from "@/lib/utils"
 import type { Message } from "@/stores/chat"
 import { Bot, User } from "lucide-react"
+
+function SafeLink({
+  href,
+  children,
+  ...props
+}: AnchorHTMLAttributes<HTMLAnchorElement>) {
+  const url = String(href ?? "")
+  const isSafe =
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("mailto:")
+
+  if (!isSafe) return <span>{children}</span>
+
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer nofollow" {...props}>
+      {children}
+    </a>
+  )
+}
 
 export interface ChatMessageProps {
   message: Message
@@ -39,8 +63,15 @@ export function ChatMessage({ message, className }: ChatMessageProps) {
         <ItemTitle className="text-xs font-medium opacity-80">
           {isUser ? "You" : "Assistant"}
         </ItemTitle>
-        <div className="mt-1 whitespace-pre-wrap break-words text-sm font-normal">
-          {message.content}
+        <div className="markdown-content mt-1 max-w-none break-words text-sm font-normal">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              a: SafeLink,
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
         </div>
       </ItemContent>
     </Item>

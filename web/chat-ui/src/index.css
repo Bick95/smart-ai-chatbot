@@ -120,6 +120,49 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+.markdown-content p {
+  margin: 0 0 0.5em;
+}
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+.markdown-content ul,
+.markdown-content ol {
+  margin: 0.25em 0;
+  padding-left: 1.5em;
+}
+.markdown-content li {
+  margin: 0.125em 0;
+}
+.markdown-content code {
+  background-color: var(--muted);
+  padding: 0.125em 0.375em;
+  border-radius: 0.25em;
+  font-size: 0.9em;
+}
+.markdown-content pre {
+  margin: 0.5em 0;
+  padding: 0.75em;
+  background-color: var(--muted);
+  border-radius: 0.375em;
+  overflow-x: auto;
+}
+.markdown-content pre code {
+  padding: 0;
+  background: none;
+}
+.markdown-content a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.markdown-content a:hover {
+  text-decoration-thickness: 2px;
+}
+.markdown-content strong {
+  font-weight: 600;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
