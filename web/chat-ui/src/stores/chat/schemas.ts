@@ -9,6 +9,7 @@ export const messageSchema = z.object({
   id: z.string().uuid(),
   role: messageRoleSchema,
   content: z.string().min(1).max(65_536),
+  createdAt: z.date().optional(),
 })
 export type Message = z.infer<typeof messageSchema>
 

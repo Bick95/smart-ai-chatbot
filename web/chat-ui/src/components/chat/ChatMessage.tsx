@@ -12,6 +12,34 @@ import { cn } from "@/lib/utils"
 import type { Message } from "@/stores/chat"
 import { Bot, User } from "lucide-react"
 
+function formatMessageTime(date: Date): string {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const msgDate = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate()
+  )
+  const time = date.toLocaleTimeString("de-DE", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+  if (msgDate.getTime() === today.getTime()) {
+    return time
+  }
+  if (msgDate.getTime() === yesterday.getTime()) {
+    return `Gestern, ${time}`
+  }
+  const dateStr = date.toLocaleDateString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })
+  return `${dateStr}, ${time}`
+}
+
 function SafeLink({
   href,
   children,
@@ -60,9 +88,24 @@ export function ChatMessage({ message, className }: ChatMessageProps) {
         )}
       </ItemMedia>
       <ItemContent className={cn("min-w-0 flex-1", isUser && "text-right")}>
-        <ItemTitle className="text-xs font-medium opacity-80">
-          {isUser ? "You" : "Assistant"}
-        </ItemTitle>
+        <div
+          className={cn(
+            "flex items-center gap-2",
+            isUser && "justify-end"
+          )}
+        >
+          <ItemTitle className="text-xs font-medium opacity-80">
+            {isUser ? "You" : "Assistant"}
+          </ItemTitle>
+          {message.createdAt && (
+            <time
+              dateTime={message.createdAt.toISOString()}
+              className="text-muted-foreground text-xs opacity-70"
+            >
+              {formatMessageTime(message.createdAt)}
+            </time>
+          )}
+        </div>
         <div className="markdown-content mt-1 max-w-none break-words text-sm font-normal">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}

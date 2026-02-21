@@ -73,6 +73,7 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
       id: generateId(),
       role: parsed.role,
       content: parsed.content,
+      createdAt: new Date(),
     }
     const validated = messageSchema.parse(message)
 
