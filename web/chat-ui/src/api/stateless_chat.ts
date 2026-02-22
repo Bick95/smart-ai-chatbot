@@ -1,5 +1,6 @@
 import { API_BASE } from "../constants";
 import {
+    type ChatApiMessage,
     type ChatApiRequest,
     type ChatApiResponse,
     chatApiRequestSchema,
@@ -12,13 +13,10 @@ import {
  * Validates both the outgoing request and incoming response.
  */
 export async function sendChatMessages(
-    messages: Array<{ role: string; content: string }>,
+    messages: ChatApiMessage[],
 ): Promise<string> {
     const body: ChatApiRequest = chatApiRequestSchema.parse({
-        messages: messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-        })),
+        messages,
     });
 
     const res = await fetch(`${API_BASE}/api/v1/stateless_chat`, {
