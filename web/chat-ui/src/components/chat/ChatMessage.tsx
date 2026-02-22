@@ -41,6 +41,8 @@ function SafeLink({
     ...props
 }: AnchorHTMLAttributes<HTMLAnchorElement>) {
     const url = String(href ?? "");
+    // Only allow protocols that navigate or open apps; block javascript:, data:, vbscript:, etc.,
+    // which execute code when clicked and can lead to XSS.
     const isSafe =
         url.startsWith("http://") ||
         url.startsWith("https://") ||
@@ -109,6 +111,11 @@ export function ChatMessage({ message, className }: ChatMessageProps) {
                     )}
                 </div>
                 <div className="markdown-content mt-1 max-w-none break-words text-sm font-normal">
+                    {
+                        /* remarkGfm adds GitHub Flavored Markdown: tables, strikethrough, task lists,
+                           autolinks, which are common in LLM output.
+                        */
+                    }
                     <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{

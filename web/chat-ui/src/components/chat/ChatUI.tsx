@@ -45,6 +45,8 @@ export function ChatUI({
         }
     }, [currentChat, createChat]);
 
+    // Scroll to bottom whenever content at the bottom changes: new messages,
+    // loading indicator appears/disappears, or error state.
     useEffect(() => {
         const viewport = viewportRef.current;
         if (!viewport) return;
@@ -56,11 +58,12 @@ export function ChatUI({
 
     const handleSubmit = useCallback(
         async (content: string) => {
+            if (!onSendMessage) {
+                throw new Error("ChatUI requires onSendMessage to send messages");
+            }
             setLoading(true);
             try {
-                if (onSendMessage) {
-                    await onSendMessage(content);
-                }
+                await onSendMessage(content);
             } finally {
                 setLoading(false);
             }

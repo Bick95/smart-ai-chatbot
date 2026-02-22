@@ -13,18 +13,20 @@ export default function App() {
         const store = useChatStore.getState();
         store.addMessageToCurrent({ role: "user", content });
         const chat = store.getCurrentChat();
-        const apiMessages =
-            chat?.messages.map((m) => ({ role: m.role, content: m.content })) ??
-            [];
+        const chatId = store.currentChatId;
+        if (!chatId || !chat) return;
+
+        const apiMessages = chat.messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+        }));
 
         try {
             const reply = await sendChatMessages(apiMessages);
-            if (store.currentChatId) {
-                store.addMessage(store.currentChatId, {
-                    role: "assistant",
-                    content: reply,
-                });
-            }
+            store.addMessage(chatId, {
+                role: "assistant",
+                content: reply,
+            });
         } catch (err) {
             setError({
                 message: err instanceof Error ? err.message : String(err),
@@ -37,18 +39,23 @@ export default function App() {
         setError(null);
         const store = useChatStore.getState();
         const chat = store.getCurrentChat();
-        const apiMessages =
-            chat?.messages.map((m) => ({ role: m.role, content: m.content })) ??
-            [];
+        const chatId = store.currentChatId;
+        if (!chatId || !chat) {
+            setIsRetrying(false);
+            return;
+        }
+
+        const apiMessages = chat.messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+        }));
 
         try {
             const reply = await sendChatMessages(apiMessages);
-            if (store.currentChatId) {
-                store.addMessage(store.currentChatId, {
-                    role: "assistant",
-                    content: reply,
-                });
-            }
+            store.addMessage(chatId, {
+                role: "assistant",
+                content: reply,
+            });
         } catch (err) {
             setError({
                 message: err instanceof Error ? err.message : String(err),
