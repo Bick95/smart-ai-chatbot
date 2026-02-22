@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import "./App.css";
 import { sendChatMessages } from "@/api/stateless_chat";
 import { ChatUI } from "@/components/chat";
+import type { ChatApiMessage } from "@/stores/chat/schemas";
 import { useChatStore } from "@/stores/chat";
 
 export default function App() {
@@ -16,13 +17,13 @@ export default function App() {
         const chatId = store.currentChatId;
         if (!chatId || !chat) return;
 
-        const apiMessages = chat.messages.map((m) => ({
+        const apiMessages: ChatApiMessage[] = chat.messages.map((m) => ({
             role: m.role,
             content: m.content,
         }));
 
         try {
-            const reply = await sendChatMessages(apiMessages);
+            const reply: string = await sendChatMessages(apiMessages);
             store.addMessage(chatId, {
                 role: "assistant",
                 content: reply,
@@ -45,13 +46,13 @@ export default function App() {
             return;
         }
 
-        const apiMessages = chat.messages.map((m) => ({
+        const apiMessages: ChatApiMessage[] = chat.messages.map((m) => ({
             role: m.role,
             content: m.content,
         }));
 
         try {
-            const reply = await sendChatMessages(apiMessages);
+            const reply: string = await sendChatMessages(apiMessages);
             store.addMessage(chatId, {
                 role: "assistant",
                 content: reply,
