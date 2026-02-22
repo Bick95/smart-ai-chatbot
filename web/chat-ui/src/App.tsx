@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import "./App.css";
-import { sendChatMessages } from "@/api/chat";
+import { sendChatMessages } from "@/api/stateless_chat";
 import { ChatUI } from "@/components/chat";
 import { useChatStore } from "@/stores/chat";
 

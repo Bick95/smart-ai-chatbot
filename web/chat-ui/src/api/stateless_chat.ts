@@ -1,31 +1,25 @@
-import { API_BASE } from "@/constants";
-
-export interface ChatApiMessage {
-    role: "user" | "assistant" | "system";
-    content: string;
-}
-
-export interface ChatApiRequest {
-    messages: ChatApiMessage[];
-}
-
-export interface ChatApiResponse {
-    content: string;
-}
+import { API_BASE } from "../constants";
+import {
+    type ChatApiRequest,
+    type ChatApiResponse,
+    chatApiRequestSchema,
+    chatApiResponseSchema,
+} from "../stores/chat/schemas";
 
 /**
  * Send messages to the stateless chat API and receive the assistant's reply.
  * The backend expects the full conversation history each request.
+ * Validates both the outgoing request and incoming response.
  */
 export async function sendChatMessages(
     messages: Array<{ role: string; content: string }>,
 ): Promise<string> {
-    const body: ChatApiRequest = {
+    const body: ChatApiRequest = chatApiRequestSchema.parse({
         messages: messages.map((m) => ({
-            role: m.role as ChatApiMessage["role"],
+            role: m.role,
             content: m.content,
         })),
-    };
+    });
 
     const res = await fetch(`${API_BASE}/api/v1/stateless_chat`, {
         method: "POST",
@@ -42,6 +36,7 @@ export async function sendChatMessages(
         );
     }
 
-    const data: ChatApiResponse = await res.json();
+    const json: unknown = await res.json();
+    const data: ChatApiResponse = chatApiResponseSchema.parse(json);
     return data.content;
 }
