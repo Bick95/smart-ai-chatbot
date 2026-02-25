@@ -2,9 +2,8 @@
 
 from src.auth.utils.validation import is_valid_uuid4, validate_uuid4
 from src.auth.utils.jwt import (
-    SUBJECT_TYPE_SERVICE_ACCOUNT,
-    SUBJECT_TYPE_USER,
     SubjectPayload,
+    SubjectType,
     create_auth_token,
     create_refresh_token,
     verify_auth_token,
@@ -14,9 +13,8 @@ from src.auth.utils.password import hash_password, verify_password
 
 __all__ = [
     "is_valid_uuid4",
-    "SUBJECT_TYPE_SERVICE_ACCOUNT",
-    "SUBJECT_TYPE_USER",
     "SubjectPayload",
+    "SubjectType",
     "create_auth_token",
     "create_refresh_token",
     "hash_password",

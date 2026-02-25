@@ -6,7 +6,12 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Path
 
 from src.auth.ports.auth_port import AuthPort
 from src.auth.ports.types import AuthUser
-from src.auth.utils.jwt import create_auth_token, create_refresh_token, verify_refresh_token
+from src.auth.utils.jwt import (
+    SubjectType,
+    create_auth_token,
+    create_refresh_token,
+    verify_refresh_token,
+)
 from src.server.dependencies import get_auth
 from src.server.schemas.auth import (
     AuthTokensResponse,
@@ -96,20 +101,15 @@ async def refresh(
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
 
     match subject.subject_type:
-        case "user":
+        case SubjectType.USER:
             user = await auth.get_user_by_id(subject.subject_id)
             if user is None:
                 raise HTTPException(status_code=401, detail="User no longer exists")
             return _user_to_tokens_response(user)
-        case "service_account":
+        case SubjectType.SERVICE_ACCOUNT:
             raise HTTPException(
                 status_code=501,
                 detail="Service account refresh not implemented",
-            )
-        case _:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unknown subject type: {subject.subject_type!r}",
             )
 
 

@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
+from enum import Enum
 
 import jwt
+from pydantic import BaseModel, ConfigDict, ValidationError, field_validator, model_validator
 
 from src.auth.utils.validation import is_valid_uuid4, validate_uuid4
 from src.settings import settings
@@ -16,44 +17,65 @@ _logger = get_logger(__name__)
 TOKEN_TYPE_AUTH = "auth"
 TOKEN_TYPE_REFRESH = "refresh"
 
-SUBJECT_TYPE_USER = "user"
-SUBJECT_TYPE_SERVICE_ACCOUNT = "service_account"
+
+class SubjectType(str, Enum):
+    """Valid subject types for authentication."""
+
+    USER = "user"
+    SERVICE_ACCOUNT = "service_account"
 
 
-@dataclass(frozen=True)
-class SubjectPayload:
+class SubjectPayload(BaseModel):
     """Subject claim extracted from a decoded token (who can act on the system).
 
-    subject_id is validated as UUID-v4.
+    All validations run when creating from raw token data via model_validate.
+    subject_type must be a valid SubjectType. subject_id must be UUID-v4.
     """
 
-    subject_type: str
+    model_config = ConfigDict(frozen=True)
+
+    subject_type: SubjectType
     subject_id: str
 
-    def __post_init__(self) -> None:
-        if not is_valid_uuid4(self.subject_id):
-            raise ValueError(f"subject_id must be UUID-v4, got {self.subject_id!r}")
+    @model_validator(mode="before")
+    @classmethod
+    def extract_subject_claims(cls, data: object) -> dict:
+        """Extract and normalize subject claims from raw token payload."""
+        if not isinstance(data, dict):
+            return data
+        subject_type = data.get("subject_type")
+        subject_id = data.get("subject_id")
+        if subject_type is None or subject_id is None:
+            raise ValueError("subject_type and subject_id are required")
+        return {"subject_type": subject_type, "subject_id": str(subject_id)}
+
+    @field_validator("subject_id")
+    @classmethod
+    def subject_id_must_be_uuid4(cls, v: str) -> str:
+        if not is_valid_uuid4(v):
+            raise ValueError(f"subject_id must be UUID-v4, got {v!r}")
+        return v
 
 
 def create_auth_token(
     subject_id: str,
     *,
-    subject_type: str = SUBJECT_TYPE_USER,
+    subject_type: SubjectType = SubjectType.USER,
 ) -> str:
     """Create a short-lived auth JWT (default 15 min)."""
     return _create_token(
-        subject_type, subject_id, TOKEN_TYPE_AUTH, settings.JWT_AUTH_TTL_SECONDS
+        subject_type.value, subject_id, TOKEN_TYPE_AUTH, settings.JWT_AUTH_TTL_SECONDS
     )
 
 
 def create_refresh_token(
     subject_id: str,
     *,
-    subject_type: str = SUBJECT_TYPE_USER,
+    subject_type: SubjectType = SubjectType.USER,
 ) -> str:
     """Create a long-lived refresh JWT (default 24 h)."""
     return _create_token(
-        subject_type, subject_id, TOKEN_TYPE_REFRESH, settings.JWT_REFRESH_TTL_SECONDS
+        subject_type.value, subject_id, TOKEN_TYPE_REFRESH, settings.JWT_REFRESH_TTL_SECONDS
     )
 
 
@@ -101,15 +123,10 @@ def _verify_token(token: str, expected_token_type: str) -> SubjectPayload | None
         )
         if token_payload.get("token_type") != expected_token_type:
             return None
-        subject_type = token_payload.get("subject_type")
-        subject_id = token_payload.get("subject_id")
-        if not subject_type or not subject_id:
+        try:
+            return SubjectPayload.model_validate(token_payload)
+        except ValidationError:
             return None
-        if not is_valid_uuid4(str(subject_id)):
-            return None
-        return SubjectPayload(
-            subject_type=str(subject_type), subject_id=str(subject_id)
-        )
     except (jwt.PyJWTError, ValueError):
         return None
     except Exception as e:
