@@ -49,7 +49,7 @@ async def signup(
     body: SignupRequest,
     auth: AuthPort | None = Depends(get_auth),
 ) -> AuthTokensResponse:
-    """Create a new user account. Returns user, auth JWT (15 min), and refresh JWT (24 h)."""
+    """Create a new user account. Returns user, auth JWT and refresh JWT."""
     auth = _require_auth(auth)
     try:
         user = await auth.signup(
@@ -69,7 +69,7 @@ async def login(
     body: LoginRequest,
     auth: AuthPort | None = Depends(get_auth),
 ) -> AuthTokensResponse:
-    """Verify credentials and return user with auth JWT (15 min) and refresh JWT (24 h).
+    """Verify credentials and return user with auth JWT and refresh JWT.
 
     Passwords with fewer than 8 characters are rejected without verification
     (consistent with signup min length).
@@ -88,10 +88,10 @@ async def refresh(
 ) -> AuthTokensResponse:
     """Exchange a valid refresh token for a new auth token and refresh token."""
     auth = _require_auth(auth)
-    user_id = verify_refresh_token(body.refresh_token)
-    if user_id is None:
+    payload = verify_refresh_token(body.refresh_token)
+    if payload is None:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
-    user = await auth.get_user_by_id(user_id)
+    user = await auth.get_user_by_id(payload.entity_id)
     if user is None:
         raise HTTPException(status_code=401, detail="User no longer exists")
     return _user_to_tokens_response(user)

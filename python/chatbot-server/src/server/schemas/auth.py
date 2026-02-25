@@ -6,6 +6,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from src.settings import settings
+
 
 class SignupRequest(BaseModel):
     """Request body for signup."""
@@ -35,12 +37,22 @@ class AuthUserResponse(BaseModel):
     created_at: datetime | None = None
 
 
+def _auth_token_ttl_description() -> str:
+    mins = settings.JWT_AUTH_TTL_SECONDS // 60
+    return f"Short-lived JWT for API auth ({mins} min)"
+
+
+def _refresh_token_ttl_description() -> str:
+    hours = settings.JWT_REFRESH_TTL_SECONDS // 3600
+    return f"Long-lived JWT to obtain new auth tokens ({hours} h)"
+
+
 class AuthTokensResponse(BaseModel):
     """Signup/login response with user and JWTs."""
 
     user: AuthUserResponse
-    auth_token: str = Field(..., description="Short-lived JWT for API auth (15 min)")
-    refresh_token: str = Field(..., description="Long-lived JWT to obtain new auth tokens (24 h)")
+    auth_token: str = Field(..., description=_auth_token_ttl_description())
+    refresh_token: str = Field(..., description=_refresh_token_ttl_description())
 
 
 class RefreshRequest(BaseModel):
