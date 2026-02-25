@@ -38,7 +38,11 @@ class AuthPort(Protocol):
         ...
 
     async def get_user_by_email(self, email: str) -> AuthUser | None:
-        """Fetch a user by email. Returns None if not found."""
+        """Fetch a user by email. Returns None if not found.
+
+        Note: Inefficient for Supabase (fetches all users); prefer get_user_by_id
+        or verify_credentials when possible.
+        """
         ...
 
     async def verify_credentials(self, email: str, password: str) -> AuthUser | None:

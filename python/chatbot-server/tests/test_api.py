@@ -21,6 +21,43 @@ class TestAuthEndpoints:
         )
         assert response.status_code == 503
 
+    def test_signup_rejects_short_password(self, client):
+        response = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "a@b.com", "username": "u", "password": "short"},
+        )
+        assert response.status_code == 422
+
+    def test_login_rejects_short_password_without_verification(self, client):
+        """Password < 8 chars rejected by validation (422) before auth attempt."""
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"email": "a@b.com", "password": "short"},
+        )
+        assert response.status_code == 422
+
+    def test_get_user_returns_503_when_auth_disabled(self, client):
+        response = client.get("/api/v1/auth/users/some-uuid")
+        assert response.status_code == 503
+
+    def test_delete_user_returns_503_when_auth_disabled(self, client):
+        response = client.delete("/api/v1/auth/users/some-uuid")
+        assert response.status_code == 503
+
+    def test_update_username_returns_503_when_auth_disabled(self, client):
+        response = client.patch(
+            "/api/v1/auth/users/some-uuid/username",
+            json={"username": "newname"},
+        )
+        assert response.status_code == 503
+
+    def test_update_password_returns_503_when_auth_disabled(self, client):
+        response = client.patch(
+            "/api/v1/auth/users/some-uuid/password",
+            json={"password": "newpassword123"},
+        )
+        assert response.status_code == 503
+
 
 @pytest.mark.unit
 class TestHealthEndpoint:

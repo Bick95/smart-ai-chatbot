@@ -10,6 +10,16 @@ from src.auth.ports.types import AuthUser
 from src.auth.utils.password import hash_password, verify_password
 
 
+def _row_to_user(row: asyncpg.Record) -> AuthUser:
+    created_at = row["created_at"] if "created_at" in row else None
+    return AuthUser(
+        id=str(row["id"]),
+        email=row["email"],
+        username=row["username"],
+        created_at=created_at,
+    )
+
+
 class PostgresAuthAdapter:
     """Auth adapter using a plain Postgres database.
 
@@ -23,17 +33,18 @@ class PostgresAuthAdapter:
         password_hash = hash_password(password)
         user_id = str(uuid4())
         async with self._pool.acquire() as conn:
-            await conn.execute(
+            row = await conn.fetchrow(
                 """
                 INSERT INTO auth_users (id, email, username, password_hash, updated_at)
                 VALUES ($1, $2, $3, $4, NOW())
+                RETURNING id, email, username, created_at
                 """,
                 user_id,
                 email.lower().strip(),
                 username.strip(),
                 password_hash,
             )
-        return AuthUser(id=user_id, email=email.lower().strip(), username=username.strip())
+        return _row_to_user(row)
 
     async def delete_account(self, user_id: str) -> bool:
         async with self._pool.acquire() as conn:
@@ -73,31 +84,31 @@ class PostgresAuthAdapter:
     async def get_user_by_id(self, user_id: str) -> AuthUser | None:
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT id, email, username FROM auth_users WHERE id = $1",
+                "SELECT id, email, username, created_at FROM auth_users WHERE id = $1",
                 user_id,
             )
         if row is None:
             return None
-        return AuthUser(id=str(row["id"]), email=row["email"], username=row["username"])
+        return _row_to_user(row)
 
     async def get_user_by_email(self, email: str) -> AuthUser | None:
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT id, email, username FROM auth_users WHERE email = $1",
+                "SELECT id, email, username, created_at FROM auth_users WHERE email = $1",
                 email.lower().strip(),
             )
         if row is None:
             return None
-        return AuthUser(id=str(row["id"]), email=row["email"], username=row["username"])
+        return _row_to_user(row)
 
     async def verify_credentials(self, email: str, password: str) -> AuthUser | None:
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT id, email, username, password_hash FROM auth_users WHERE email = $1",
+                "SELECT id, email, username, password_hash, created_at FROM auth_users WHERE email = $1",
                 email.lower().strip(),
             )
         if row is None:
             return None
         if not verify_password(password, row["password_hash"]):
             return None
-        return AuthUser(id=str(row["id"]), email=row["email"], username=row["username"])
+        return _row_to_user(row)
