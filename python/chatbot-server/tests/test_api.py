@@ -4,6 +4,25 @@ import pytest
 
 
 @pytest.mark.unit
+class TestAuthEndpoints:
+    """Auth endpoints return 503 when AUTH_ENABLED=false."""
+
+    def test_signup_returns_503_when_auth_disabled(self, client):
+        response = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "a@b.com", "username": "u", "password": "password123"},
+        )
+        assert response.status_code == 503
+
+    def test_login_returns_503_when_auth_disabled(self, client):
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"email": "a@b.com", "password": "password123"},
+        )
+        assert response.status_code == 503
+
+
+@pytest.mark.unit
 class TestHealthEndpoint:
     def test_health_returns_ok(self, client):
         response = client.get("/health")

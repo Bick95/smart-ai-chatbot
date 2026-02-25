@@ -56,6 +56,28 @@ class Settings(BaseSettings):
         description="Seconds between prompt API refreshes (min 60)",
     )
 
+    # Auth (hexagonal: postgres or supabase adapter)
+    AUTH_ENABLED: bool = Field(
+        default=False,
+        description="Enable auth; when True, AUTH_PROVIDER and its config are required",
+    )
+    AUTH_PROVIDER: str = Field(
+        default="postgres",
+        description="Auth adapter: 'postgres' or 'supabase' (used when AUTH_ENABLED=True)",
+    )
+    DATABASE_URL: SecretStr | None = Field(
+        default=None,
+        description="Postgres connection URL (required when AUTH_PROVIDER=postgres)",
+    )
+    SUPABASE_URL: str = Field(
+        default="",
+        description="Supabase project URL (required when AUTH_PROVIDER=supabase)",
+    )
+    SUPABASE_SERVICE_ROLE_KEY: SecretStr | None = Field(
+        default=None,
+        description="Supabase service_role key (required when AUTH_PROVIDER=supabase)",
+    )
+
     # Secrets
     OPENAI_API_KEY: SecretStr
 

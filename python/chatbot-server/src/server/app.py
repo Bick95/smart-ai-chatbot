@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.auth.factory import create_auth_adapter
 from src.chatbot.prompts import (
     FilePromptSource,
     HttpPromptSource,
@@ -16,6 +17,7 @@ from src.server.middleware import (
     RequestLoggingMiddleware,
     sanitized_exception_handler,
 )
+from src.server.routers.auth import router as auth_router
 from src.server.routers.stateless_chat import router as stateless_chat_router
 from src.settings import settings
 from src.utils.clients import create_clients
@@ -26,6 +28,13 @@ async def lifespan(app: FastAPI):
     """Create shared clients on startup; agent is created per request."""
     clients = create_clients()
     app.state.clients = clients
+
+    # Auth adapter (hexagonal: postgres or supabase), only when AUTH_ENABLED
+    auth_adapter = None
+    auth_cleanup = None
+    if settings.AUTH_ENABLED:
+        auth_adapter, auth_cleanup = await create_auth_adapter()
+    app.state.auth = auth_adapter
 
     # Optional: configure prompt handler with API source for live refresh
     if settings.PROMPT_API_URL:
@@ -45,6 +54,10 @@ async def lifespan(app: FastAPI):
 
     # Stop prompt refresh if it was started
     get_prompt_handler().stop_background_refresh()
+
+    # Close auth resources (e.g. Postgres pool)
+    if auth_cleanup is not None and hasattr(auth_cleanup, "close"):
+        await auth_cleanup.close()
 
 
 def create_app() -> FastAPI:
@@ -69,6 +82,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.include_router(auth_router, prefix="/api/v1")
     app.include_router(stateless_chat_router, prefix="/api/v1")
 
     @app.get("/health")
