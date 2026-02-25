@@ -88,13 +88,26 @@ async def refresh(
 ) -> AuthTokensResponse:
     """Exchange a valid refresh token for a new auth token and refresh token."""
     auth = _require_auth(auth)
-    payload = verify_refresh_token(body.refresh_token)
-    if payload is None:
+    subject = verify_refresh_token(body.refresh_token)
+    if subject is None:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
-    user = await auth.get_user_by_id(payload.entity_id)
-    if user is None:
-        raise HTTPException(status_code=401, detail="User no longer exists")
-    return _user_to_tokens_response(user)
+
+    match subject.subject_type:
+        case "user":
+            user = await auth.get_user_by_id(subject.subject_id)
+            if user is None:
+                raise HTTPException(status_code=401, detail="User no longer exists")
+            return _user_to_tokens_response(user)
+        case "service_account":
+            raise HTTPException(
+                status_code=501,
+                detail="Service account refresh not implemented",
+            )
+        case _:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown subject type: {subject.subject_type!r}",
+            )
 
 
 @router.get("/users/{user_id}", response_model=AuthUserResponse)
