@@ -12,11 +12,9 @@ from src.settings import settings
 
 
 async def create_auth_adapter() -> tuple[AuthPort, object | None]:
-    """Create auth adapter. Call only when AUTH_ENABLED=True."""
-    """Create the auth adapter and optional cleanup object.
+    """Create auth adapter. Call only when AUTH_ENABLED=True.
 
-    Returns (adapter, cleanup) where cleanup is a callable/object to close
-    resources on shutdown (e.g. pool.close), or None.
+    Returns (adapter, cleanup) where cleanup is a pool to close on shutdown, or None.
     """
     provider = settings.AUTH_PROVIDER.lower()
 
@@ -41,11 +39,20 @@ async def create_auth_adapter() -> tuple[AuthPort, object | None]:
                 "AUTH_PROVIDER=supabase requires SUPABASE_URL and "
                 "SUPABASE_SERVICE_ROLE_KEY to be set"
             )
+        pool: asyncpg.Pool | None = None
+        if settings.SUPABASE_DATABASE_URL is not None:
+            pool = await asyncpg.create_pool(
+                settings.SUPABASE_DATABASE_URL.get_secret_value(),
+                min_size=1,
+                max_size=5,
+                command_timeout=60,
+            )
         adapter = SupabaseAuthAdapter(
             supabase_url=settings.SUPABASE_URL,
             service_role_key=settings.SUPABASE_SERVICE_ROLE_KEY.get_secret_value(),
+            database_pool=pool,
         )
-        return adapter, None
+        return adapter, pool
 
     raise ValueError(
         f"Unknown AUTH_PROVIDER: {settings.AUTH_PROVIDER}. "

@@ -77,6 +77,11 @@ class Settings(BaseSettings):
         default=None,
         description="Supabase service_role key (required when AUTH_PROVIDER=supabase)",
     )
+    SUPABASE_DATABASE_URL: SecretStr | None = Field(
+        default=None,
+        description="Supabase Postgres connection URL; when set, get_user_by_email uses "
+        "efficient direct query on auth.users instead of list_users",
+    )
 
     # Secrets
     OPENAI_API_KEY: SecretStr

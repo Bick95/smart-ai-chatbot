@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-
+import asyncpg
 from supabase import create_client, Client
 from supabase.lib.client_options import ClientOptions
 
@@ -34,9 +34,18 @@ class SupabaseAuthAdapter:
     Supabase will hash again; we pass our hash as the 'password' so that
     stored value is hash(hash(plain)). For sign_in we hash(plain) and pass
     that; Supabase hashes and compares.
+
+    When database_pool is provided for get_user_by_email, uses efficient
+    direct query on auth.users instead of list_users (which fetches all users).
     """
 
-    def __init__(self, supabase_url: str, service_role_key: str) -> None:
+    def __init__(
+        self,
+        supabase_url: str,
+        service_role_key: str,
+        *,
+        database_pool: asyncpg.Pool | None = None,
+    ) -> None:
         self._client: Client = create_client(
             supabase_url,
             service_role_key,
@@ -45,6 +54,7 @@ class SupabaseAuthAdapter:
                 persist_session=False,
             ),
         )
+        self._database_pool: asyncpg.Pool | None = database_pool
 
     async def signup(self, email: str, username: str, password: str) -> AuthUser:
         hashed = hash_password(password)
@@ -111,10 +121,48 @@ class SupabaseAuthAdapter:
         return await asyncio.to_thread(_get)
 
     async def get_user_by_email(self, email: str) -> AuthUser | None:
+        if self._database_pool is not None:
+            return await self._get_user_by_email_via_postgres(email)
         _logger.warning(
-            "get_user_by_email is inefficient: fetches all users from Supabase; "
-            "prefer get_user_by_id or verify_credentials when possible"
+            "get_user_by_email without SUPABASE_DATABASE_URL: fetches all users via list_users; "
+            "set SUPABASE_DATABASE_URL for efficient direct query on auth.users"
         )
+        return await self._get_user_by_email_via_list_users(email)
+
+    async def _get_user_by_email_via_postgres(self, email: str) -> AuthUser | None:
+        """Efficient query via direct Postgres connection to auth.users."""
+        pool = self._database_pool
+        if pool is None:
+            _logger.warning(
+                "get_user_by_email: expected database pool but it is None; "
+                "falling back to no result (unexpected state)"
+            )
+            return None
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT id, email, raw_user_meta_data, created_at
+                FROM auth.users
+                WHERE email = $1
+                LIMIT 1
+                """,
+                email.lower().strip(),
+            )
+        if row is None:
+            return None
+        meta = row["raw_user_meta_data"] if "raw_user_meta_data" in row else {}
+        username = meta.get("username", "") if isinstance(meta, dict) else ""
+        raw_created = row["created_at"] if "created_at" in row else None
+        created_at = _parse_created_at(raw_created)
+        return AuthUser(
+            id=str(row["id"]),
+            email=row["email"],
+            username=username,
+            created_at=created_at,
+        )
+
+    async def _get_user_by_email_via_list_users(self, email: str) -> AuthUser | None:
+        """Fallback: list_users then filter (inefficient)."""
 
         def _get() -> AuthUser | None:
             response = self._client.auth.admin.list_users()

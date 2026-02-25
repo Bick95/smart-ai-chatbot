@@ -40,8 +40,10 @@ class AuthPort(Protocol):
     async def get_user_by_email(self, email: str) -> AuthUser | None:
         """Fetch a user by email. Returns None if not found.
 
-        Note: Inefficient for Supabase (fetches all users); prefer get_user_by_id
-        or verify_credentials when possible.
+        Note: For Supabase without SUPABASE_DATABASE_URL, this fetches all users
+        via list_users (inefficient). Set SUPABASE_DATABASE_URL for efficient
+        direct query on auth.users. Prefer get_user_by_id or verify_credentials
+        when possible.
         """
         ...
 

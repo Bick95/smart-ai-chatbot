@@ -35,8 +35,8 @@ class PostgresAuthAdapter:
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(
                 """
-                INSERT INTO auth_users (id, email, username, password_hash, updated_at)
-                VALUES ($1, $2, $3, $4, NOW())
+                INSERT INTO auth_users (id, email, username, password_hash)
+                VALUES ($1, $2, $3, $4)
                 RETURNING id, email, username, created_at
                 """,
                 user_id,
