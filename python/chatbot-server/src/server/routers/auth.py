@@ -6,10 +6,13 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from src.auth.ports.auth_port import AuthPort
 from src.auth.ports.types import AuthUser
+from src.auth.utils.jwt import create_auth_token, create_refresh_token, verify_refresh_token
 from src.server.dependencies import get_auth
 from src.server.schemas.auth import (
+    AuthTokensResponse,
     AuthUserResponse,
     LoginRequest,
+    RefreshRequest,
     SignupRequest,
     UpdatePasswordRequest,
     UpdateUsernameRequest,
@@ -33,12 +36,20 @@ def _user_to_response(user: AuthUser) -> AuthUserResponse:
     )
 
 
-@router.post("/signup", response_model=AuthUserResponse)
+def _user_to_tokens_response(user: AuthUser) -> AuthTokensResponse:
+    return AuthTokensResponse(
+        user=_user_to_response(user),
+        auth_token=create_auth_token(user.id),
+        refresh_token=create_refresh_token(user.id),
+    )
+
+
+@router.post("/signup", response_model=AuthTokensResponse)
 async def signup(
     body: SignupRequest,
     auth: AuthPort | None = Depends(get_auth),
-) -> AuthUserResponse:
-    """Create a new user account."""
+) -> AuthTokensResponse:
+    """Create a new user account. Returns user, auth JWT (15 min), and refresh JWT (24 h)."""
     auth = _require_auth(auth)
     try:
         user = await auth.signup(
@@ -46,19 +57,19 @@ async def signup(
             username=body.username,
             password=body.password,
         )
-        return _user_to_response(user)
+        return _user_to_tokens_response(user)
     except Exception as e:
         if "unique" in str(e).lower() or "duplicate" in str(e).lower():
             raise HTTPException(status_code=409, detail="Email already registered")
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/login", response_model=AuthUserResponse)
+@router.post("/login", response_model=AuthTokensResponse)
 async def login(
     body: LoginRequest,
     auth: AuthPort | None = Depends(get_auth),
-) -> AuthUserResponse:
-    """Verify credentials and return user info.
+) -> AuthTokensResponse:
+    """Verify credentials and return user with auth JWT (15 min) and refresh JWT (24 h).
 
     Passwords with fewer than 8 characters are rejected without verification
     (consistent with signup min length).
@@ -67,7 +78,23 @@ async def login(
     user = await auth.verify_credentials(email=body.email, password=body.password)
     if user is None:
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    return _user_to_response(user)
+    return _user_to_tokens_response(user)
+
+
+@router.post("/refresh", response_model=AuthTokensResponse)
+async def refresh(
+    body: RefreshRequest,
+    auth: AuthPort | None = Depends(get_auth),
+) -> AuthTokensResponse:
+    """Exchange a valid refresh token for a new auth token and refresh token."""
+    auth = _require_auth(auth)
+    user_id = verify_refresh_token(body.refresh_token)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+    user = await auth.get_user_by_id(user_id)
+    if user is None:
+        raise HTTPException(status_code=401, detail="User no longer exists")
+    return _user_to_tokens_response(user)
 
 
 @router.get("/users/{user_id}", response_model=AuthUserResponse)

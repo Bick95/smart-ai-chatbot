@@ -16,6 +16,9 @@ async def create_auth_adapter() -> tuple[AuthPort, object | None]:
 
     Returns (adapter, cleanup) where cleanup is a pool to close on shutdown, or None.
     """
+    if settings.JWT_SECRET_KEY is None:
+        raise ValueError("AUTH_ENABLED requires JWT_SECRET_KEY to be set")
+
     provider = settings.AUTH_PROVIDER.lower()
 
     if provider == "postgres":

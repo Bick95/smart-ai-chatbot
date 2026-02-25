@@ -35,6 +35,20 @@ class AuthUserResponse(BaseModel):
     created_at: datetime | None = None
 
 
+class AuthTokensResponse(BaseModel):
+    """Signup/login response with user and JWTs."""
+
+    user: AuthUserResponse
+    auth_token: str = Field(..., description="Short-lived JWT for API auth (15 min)")
+    refresh_token: str = Field(..., description="Long-lived JWT to obtain new auth tokens (24 h)")
+
+
+class RefreshRequest(BaseModel):
+    """Request body for token refresh."""
+
+    refresh_token: str = Field(..., min_length=1)
+
+
 class UpdateUsernameRequest(BaseModel):
     """Request body for updating username."""
 

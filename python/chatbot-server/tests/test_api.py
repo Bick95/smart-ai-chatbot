@@ -58,6 +58,13 @@ class TestAuthEndpoints:
         )
         assert response.status_code == 503
 
+    def test_refresh_returns_503_when_auth_disabled(self, client):
+        response = client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": "some-token"},
+        )
+        assert response.status_code == 503
+
 
 @pytest.mark.unit
 class TestHealthEndpoint:

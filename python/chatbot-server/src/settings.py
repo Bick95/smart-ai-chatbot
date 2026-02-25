@@ -82,6 +82,20 @@ class Settings(BaseSettings):
         description="Supabase Postgres connection URL; when set, get_user_by_email uses "
         "efficient direct query on auth.users instead of list_users",
     )
+    JWT_SECRET_KEY: SecretStr | None = Field(
+        default=None,
+        description="Secret for signing JWTs (required when AUTH_ENABLED=True)",
+    )
+    JWT_AUTH_TTL_SECONDS: int = Field(
+        default=900,
+        ge=60,
+        description="Auth JWT TTL in seconds (default 15 min)",
+    )
+    JWT_REFRESH_TTL_SECONDS: int = Field(
+        default=86400,
+        ge=3600,
+        description="Refresh JWT TTL in seconds (default 24 h)",
+    )
 
     # Secrets
     OPENAI_API_KEY: SecretStr
