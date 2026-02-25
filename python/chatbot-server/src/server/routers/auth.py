@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, Path
 
 from src.auth.ports.auth_port import AuthPort
 from src.auth.ports.types import AuthUser
@@ -19,6 +19,9 @@ from src.server.schemas.auth import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# UUID-v4 pattern for user_id path params (RFC 4122, lowercase hex)
+_USER_ID_PATH = Path(..., pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 
 
 def _require_auth(auth: AuthPort | None) -> AuthPort:
@@ -112,7 +115,7 @@ async def refresh(
 
 @router.get("/users/{user_id}", response_model=AuthUserResponse)
 async def get_user(
-    user_id: str,
+    user_id: str = _USER_ID_PATH,
     auth: AuthPort | None = Depends(get_auth),
 ) -> AuthUserResponse:
     """Get a user by ID."""
@@ -125,8 +128,8 @@ async def get_user(
 
 @router.patch("/users/{user_id}/username", response_model=AuthUserResponse)
 async def update_username(
-    user_id: str,
-    body: UpdateUsernameRequest,
+    user_id: str = _USER_ID_PATH,
+    body: UpdateUsernameRequest = Body(),
     auth: AuthPort | None = Depends(get_auth),
 ) -> AuthUserResponse:
     """Update a user's username."""
@@ -142,8 +145,8 @@ async def update_username(
 
 @router.patch("/users/{user_id}/password")
 async def update_password(
-    user_id: str,
-    body: UpdatePasswordRequest,
+    user_id: str = _USER_ID_PATH,
+    body: UpdatePasswordRequest = Body(),
     auth: AuthPort | None = Depends(get_auth),
 ) -> dict:
     """Update a user's password."""
@@ -156,7 +159,7 @@ async def update_password(
 
 @router.delete("/users/{user_id}")
 async def delete_user(
-    user_id: str,
+    user_id: str = _USER_ID_PATH,
     auth: AuthPort | None = Depends(get_auth),
 ) -> dict:
     """Delete a user account."""

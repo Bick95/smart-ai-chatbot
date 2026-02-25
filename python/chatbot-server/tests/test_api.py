@@ -37,23 +37,27 @@ class TestAuthEndpoints:
         assert response.status_code == 422
 
     def test_get_user_returns_503_when_auth_disabled(self, client):
-        response = client.get("/api/v1/auth/users/some-uuid")
+        response = client.get(
+            "/api/v1/auth/users/550e8400-e29b-41d4-a716-446655440000"
+        )
         assert response.status_code == 503
 
     def test_delete_user_returns_503_when_auth_disabled(self, client):
-        response = client.delete("/api/v1/auth/users/some-uuid")
+        response = client.delete(
+            "/api/v1/auth/users/550e8400-e29b-41d4-a716-446655440000"
+        )
         assert response.status_code == 503
 
     def test_update_username_returns_503_when_auth_disabled(self, client):
         response = client.patch(
-            "/api/v1/auth/users/some-uuid/username",
+            "/api/v1/auth/users/550e8400-e29b-41d4-a716-446655440000/username",
             json={"username": "newname"},
         )
         assert response.status_code == 503
 
     def test_update_password_returns_503_when_auth_disabled(self, client):
         response = client.patch(
-            "/api/v1/auth/users/some-uuid/password",
+            "/api/v1/auth/users/550e8400-e29b-41d4-a716-446655440000/password",
             json={"password": "newpassword123"},
         )
         assert response.status_code == 503
@@ -64,6 +68,10 @@ class TestAuthEndpoints:
             json={"refresh_token": "some-token"},
         )
         assert response.status_code == 503
+
+    def test_get_user_rejects_invalid_uuid_format(self, client):
+        response = client.get("/api/v1/auth/users/not-a-uuid")
+        assert response.status_code == 422
 
 
 @pytest.mark.unit

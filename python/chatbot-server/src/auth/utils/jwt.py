@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 import jwt
 
+from src.auth.utils.validation import is_valid_uuid4, validate_uuid4
 from src.settings import settings
 from src.utils.logging import get_logger
 
@@ -21,10 +22,17 @@ SUBJECT_TYPE_SERVICE_ACCOUNT = "service_account"
 
 @dataclass(frozen=True)
 class SubjectPayload:
-    """Subject claim extracted from a decoded token (who can act on the system)."""
+    """Subject claim extracted from a decoded token (who can act on the system).
+
+    subject_id is validated as UUID-v4.
+    """
 
     subject_type: str
     subject_id: str
+
+    def __post_init__(self) -> None:
+        if not is_valid_uuid4(self.subject_id):
+            raise ValueError(f"subject_id must be UUID-v4, got {self.subject_id!r}")
 
 
 def create_auth_token(
@@ -52,6 +60,7 @@ def create_refresh_token(
 def _create_token(
     subject_type: str, subject_id: str, token_type: str, ttl_seconds: int
 ) -> str:
+    validate_uuid4(subject_id)
     secret = settings.JWT_SECRET_KEY
     if secret is None:
         raise ValueError("JWT_SECRET_KEY is not set")
@@ -96,10 +105,12 @@ def _verify_token(token: str, expected_token_type: str) -> SubjectPayload | None
         subject_id = token_payload.get("subject_id")
         if not subject_type or not subject_id:
             return None
+        if not is_valid_uuid4(str(subject_id)):
+            return None
         return SubjectPayload(
             subject_type=str(subject_type), subject_id=str(subject_id)
         )
-    except jwt.PyJWTError:
+    except (jwt.PyJWTError, ValueError):
         return None
     except Exception as e:
         _logger.warning("JWT verification failed: %s", e, exc_info=True)
