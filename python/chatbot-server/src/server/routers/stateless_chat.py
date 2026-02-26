@@ -8,9 +8,10 @@ from fastapi import APIRouter, Depends
 from langchain_core.messages import AIMessage, AnyMessage
 from langgraph.graph.state import CompiledStateGraph
 
+from src.auth.utils.jwt import SubjectPayload
 from src.chatbot.prompts import get_prompt_handler
 from src.chatbot.state import AgentState
-from src.server.dependencies import get_agent_graph
+from src.server.dependencies import get_agent_graph, get_current_subject
 from src.server.schemas.chat import ChatRequest, ChatResponse
 from src.settings import settings
 from src.utils.logging import get_logger
@@ -27,6 +28,7 @@ async def stateless_chat(
     agent: CompiledStateGraph[AgentState, None, AgentState, AgentState] = Depends(
         get_agent_graph
     ),
+    subject: SubjectPayload = Depends(get_current_subject),
 ) -> ChatResponse:
     """
     Stateless chat: send messages and receive a reply.

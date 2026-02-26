@@ -69,8 +69,9 @@ class TestAuthEndpoints:
         )
         assert response.status_code == 503
 
-    def test_get_user_rejects_invalid_uuid_format(self, client):
-        response = client.get("/api/v1/auth/users/not-a-uuid")
+    def test_get_user_rejects_invalid_uuid_format(self, client_with_auth_bypass):
+        """Path validation runs before auth; invalid UUID returns 422."""
+        response = client_with_auth_bypass.get("/api/v1/auth/users/not-a-uuid")
         assert response.status_code == 422
 
 

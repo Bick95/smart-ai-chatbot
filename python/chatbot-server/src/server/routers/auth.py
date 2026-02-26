@@ -13,7 +13,7 @@ from src.auth.utils.jwt import (
     create_refresh_token,
     verify_refresh_token,
 )
-from src.server.dependencies import get_auth
+from src.server.dependencies import get_auth, get_current_subject
 from src.server.schemas.auth import (
     AuthTokensResponse,
     AuthUserResponse,
@@ -123,13 +123,21 @@ async def refresh(
             )
 
 
+def _require_own_user(subject: SubjectPayload, user_id: str) -> None:
+    """Raise 403 if subject cannot access the given user_id."""
+    if subject.subject_type != SubjectType.USER or subject.subject_id != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
 @router.get("/users/{user_id}", response_model=AuthUserResponse)
 async def get_user(
     user_id: str = _USER_ID_PATH,
     auth: AuthPort | None = Depends(get_auth),
+    subject: SubjectPayload = Depends(get_current_subject),
 ) -> AuthUserResponse:
-    """Get a user by ID."""
+    """Get a user by ID. Requires auth; users can only access their own data."""
     auth = _require_auth(auth)
+    _require_own_user(subject, user_id)
     user = await auth.get_user_by_id(user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -141,9 +149,11 @@ async def update_username(
     user_id: str = _USER_ID_PATH,
     body: UpdateUsernameRequest = Body(),
     auth: AuthPort | None = Depends(get_auth),
+    subject: SubjectPayload = Depends(get_current_subject),
 ) -> AuthUserResponse:
-    """Update a user's username."""
+    """Update a user's username. Requires auth; users can only update their own."""
     auth = _require_auth(auth)
+    _require_own_user(subject, user_id)
     ok = await auth.update_username(user_id, body.username)
     if not ok:
         raise HTTPException(status_code=404, detail="User not found")
@@ -158,9 +168,11 @@ async def update_password(
     user_id: str = _USER_ID_PATH,
     body: UpdatePasswordRequest = Body(),
     auth: AuthPort | None = Depends(get_auth),
+    subject: SubjectPayload = Depends(get_current_subject),
 ) -> dict:
-    """Update a user's password."""
+    """Update a user's password. Requires auth; users can only update their own."""
     auth = _require_auth(auth)
+    _require_own_user(subject, user_id)
     ok = await auth.update_password(user_id, body.password)
     if not ok:
         raise HTTPException(status_code=404, detail="User not found")
@@ -171,9 +183,11 @@ async def update_password(
 async def delete_user(
     user_id: str = _USER_ID_PATH,
     auth: AuthPort | None = Depends(get_auth),
+    subject: SubjectPayload = Depends(get_current_subject),
 ) -> dict:
-    """Delete a user account."""
+    """Delete a user account. Requires auth; users can only delete their own."""
     auth = _require_auth(auth)
+    _require_own_user(subject, user_id)
     ok = await auth.delete_account(user_id)
     if not ok:
         raise HTTPException(status_code=404, detail="User not found")
