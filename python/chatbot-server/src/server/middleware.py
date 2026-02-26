@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import HTTPException as StarletteHTTPException
 
+from src.settings import settings
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -72,13 +73,23 @@ async def sanitized_exception_handler(request: Request, exc: Exception) -> JSONR
     Full exception details are logged for debugging; clients receive only a
     generic message to avoid leaking internal information.
     """
-    logger.exception(
-        "Unhandled exception for %s %s: %s",
-        request.method,
-        request.url.path,
-        exc,
-        exc_info=True,
-    )
+    # In production, avoid logging exception message or traceback
+    if settings.DEBUG:
+        logger.exception(
+            "Unhandled exception for %s %s: %s",
+            request.method,
+            request.url.path,
+            exc,
+            exc_info=True,
+        )
+    else:
+        logger.error(
+            "Unhandled exception for %s %s: %s",
+            request.method,
+            request.url.path,
+            type(exc).__name__,
+            exc_info=False,
+        )
     return JSONResponse(
         status_code=500,
         content={"detail": SANITIZED_500_MESSAGE},
