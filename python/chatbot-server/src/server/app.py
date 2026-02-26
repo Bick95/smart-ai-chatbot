@@ -70,8 +70,10 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if settings.ENABLE_DOCS else None,
     )
 
+    # Exception handlers (most specific wins; registration order does not matter):
+    # - HTTPException: sanitizes 5xx details, passes 4xx through as-is
+    # - Exception: catch-all for RuntimeError, DB errors, etc.; returns generic 500
     app.add_exception_handler(Exception, sanitized_exception_handler)
-    # Sanitize 5xx HTTPException details (fallback for any dynamic error leakage)
     app.add_exception_handler(
         StarletteHTTPException, sanitized_http_exception_handler
     )
