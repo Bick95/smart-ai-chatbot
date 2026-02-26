@@ -29,11 +29,8 @@ async def lifespan(app: FastAPI):
     clients = create_clients()
     app.state.clients = clients
 
-    # Auth adapter (hexagonal: postgres or supabase), only when AUTH_ENABLED
-    auth_adapter = None
-    auth_cleanup = None
-    if settings.AUTH_ENABLED:
-        auth_adapter, auth_cleanup = await create_auth_adapter()
+    # Auth adapter (hexagonal: postgres, supabase, or mock for tests)
+    auth_adapter, auth_cleanup = await create_auth_adapter()
     app.state.auth = auth_adapter
 
     # Optional: configure prompt handler with API source for live refresh
@@ -55,8 +52,8 @@ async def lifespan(app: FastAPI):
     # Stop prompt refresh if it was started
     get_prompt_handler().stop_background_refresh()
 
-    # Close auth resources (e.g. Postgres pool)
-    if auth_cleanup is not None and hasattr(auth_cleanup, "close"):
+    # Close auth resources (asyncpg.Pool when postgres or supabase+DB)
+    if auth_cleanup is not None:
         await auth_cleanup.close()
 
 

@@ -8,7 +8,6 @@ from langgraph.graph.state import CompiledStateGraph
 
 from src.auth.ports.auth_port import AuthPort
 from src.auth.utils.jwt import SubjectPayload, verify_auth_token
-from src.settings import settings
 from src.chatbot.graph import get_agent
 from src.chatbot.state import AgentState
 from src.utils.types.clients import Clients
@@ -29,9 +28,9 @@ def get_agent_graph(
     return get_agent(clients)
 
 
-def get_auth(request: Request) -> AuthPort | None:
-    """Retrieve the auth adapter from app state (None if auth disabled)."""
-    return getattr(request.app.state, "auth", None)
+def get_auth(request: Request) -> AuthPort:
+    """Retrieve the auth adapter from app state."""
+    return request.app.state.auth
 
 
 def get_current_subject(
@@ -39,14 +38,8 @@ def get_current_subject(
 ) -> SubjectPayload:
     """Extract and verify the auth JWT from the Authorization header.
 
-    Returns the SubjectPayload if the token is valid. Raises 401 if invalid,
-    503 if auth is not configured.
+    Returns the SubjectPayload if the token is valid. Raises 401 if missing or invalid.
     """
-    if not settings.AUTH_ENABLED:
-        raise HTTPException(
-            status_code=503,
-            detail="Authentication is not configured. Set AUTH_ENABLED=true and provider config.",
-        )
     if credentials is None:
         raise HTTPException(
             status_code=401,

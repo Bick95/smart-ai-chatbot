@@ -5,21 +5,28 @@ import pytest
 
 @pytest.mark.unit
 class TestAuthEndpoints:
-    """Auth endpoints return 503 when AUTH_ENABLED=false."""
+    """Auth endpoints (auth is mandatory)."""
 
-    def test_signup_returns_503_when_auth_disabled(self, client):
+    def test_signup_returns_user_and_tokens(self, client):
+        """Signup with mock auth returns user and JWTs."""
         response = client.post(
             "/api/v1/auth/signup",
             json={"email": "a@b.com", "username": "u", "password": "password123"},
         )
-        assert response.status_code == 503
+        assert response.status_code == 200
+        data = response.json()
+        assert "user" in data
+        assert data["user"]["email"] == "a@b.com"
+        assert "auth_token" in data
+        assert "refresh_token" in data
 
-    def test_login_returns_503_when_auth_disabled(self, client):
+    def test_login_returns_401_for_invalid_credentials(self, client):
+        """Login with unknown user returns 401."""
         response = client.post(
             "/api/v1/auth/login",
-            json={"email": "a@b.com", "password": "password123"},
+            json={"email": "unknown@b.com", "password": "password123"},
         )
-        assert response.status_code == 503
+        assert response.status_code == 401
 
     def test_signup_rejects_short_password(self, client):
         response = client.post(
@@ -36,38 +43,20 @@ class TestAuthEndpoints:
         )
         assert response.status_code == 422
 
-    def test_get_user_returns_503_when_auth_disabled(self, client):
+    def test_get_user_returns_401_without_token(self, client):
+        """Protected endpoints require Bearer token."""
         response = client.get(
             "/api/v1/auth/users/550e8400-e29b-41d4-a716-446655440000"
         )
-        assert response.status_code == 503
+        assert response.status_code == 401
 
-    def test_delete_user_returns_503_when_auth_disabled(self, client):
-        response = client.delete(
-            "/api/v1/auth/users/550e8400-e29b-41d4-a716-446655440000"
-        )
-        assert response.status_code == 503
-
-    def test_update_username_returns_503_when_auth_disabled(self, client):
-        response = client.patch(
-            "/api/v1/auth/users/550e8400-e29b-41d4-a716-446655440000/username",
-            json={"username": "newname"},
-        )
-        assert response.status_code == 503
-
-    def test_update_password_returns_503_when_auth_disabled(self, client):
-        response = client.patch(
-            "/api/v1/auth/users/550e8400-e29b-41d4-a716-446655440000/password",
-            json={"password": "newpassword123"},
-        )
-        assert response.status_code == 503
-
-    def test_refresh_returns_503_when_auth_disabled(self, client):
+    def test_stateless_chat_returns_401_without_token(self, client):
+        """Chat endpoint requires Bearer token."""
         response = client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": "some-token"},
+            "/api/v1/stateless_chat",
+            json={"messages": [{"role": "user", "content": "Hi"}]},
         )
-        assert response.status_code == 503
+        assert response.status_code == 401
 
     def test_get_user_rejects_invalid_uuid_format(self, client_with_auth_bypass):
         """Path validation runs before auth; invalid UUID returns 422."""

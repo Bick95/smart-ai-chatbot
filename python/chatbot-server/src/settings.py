@@ -56,14 +56,10 @@ class Settings(BaseSettings):
         description="Seconds between prompt API refreshes (min 60)",
     )
 
-    # Auth (hexagonal: postgres or supabase adapter)
-    AUTH_ENABLED: bool = Field(
-        default=False,
-        description="Enable auth; when True, AUTH_PROVIDER and its config are required",
-    )
+    # Auth (hexagonal: postgres, supabase, or mock for tests)
     AUTH_PROVIDER: str = Field(
         default="postgres",
-        description="Auth adapter: 'postgres' or 'supabase' (used when AUTH_ENABLED=True)",
+        description="Auth adapter: 'postgres', 'supabase', or 'mock' (for tests)",
     )
     DATABASE_URL: SecretStr | None = Field(
         default=None,
@@ -84,7 +80,7 @@ class Settings(BaseSettings):
     )
     JWT_SECRET_KEY: SecretStr | None = Field(
         default=None,
-        description="Secret for signing JWTs (required when AUTH_ENABLED=True)",
+        description="Secret for signing JWTs (required)",
     )
     JWT_AUTH_TTL_SECONDS: int = Field(
         default=900,

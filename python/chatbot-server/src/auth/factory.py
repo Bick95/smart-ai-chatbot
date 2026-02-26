@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncpg
 
+from src.auth.adapters.mock.mock_auth_adapter import MockAuthAdapter
 from src.auth.adapters.postgres.migrations import run_migrations
 from src.auth.adapters.postgres.postgres_auth_adapter import PostgresAuthAdapter
 from src.auth.adapters.supabase.supabase_auth_adapter import SupabaseAuthAdapter
@@ -11,15 +12,19 @@ from src.auth.ports.auth_port import AuthPort
 from src.settings import settings
 
 
-async def create_auth_adapter() -> tuple[AuthPort, object | None]:
-    """Create auth adapter. Call only when AUTH_ENABLED=True.
+async def create_auth_adapter() -> tuple[AuthPort, asyncpg.Pool | None]:
+    """Create auth adapter. Auth is mandatory.
 
-    Returns (adapter, cleanup) where cleanup is a pool to close on shutdown, or None.
+    Returns (adapter, pool) where pool is an asyncpg.Pool to close on shutdown,
+    or None (mock adapter or Supabase without direct DB).
     """
     if settings.JWT_SECRET_KEY is None:
-        raise ValueError("AUTH_ENABLED requires JWT_SECRET_KEY to be set")
+        raise ValueError("JWT_SECRET_KEY is required")
 
     provider = settings.AUTH_PROVIDER.lower()
+
+    if provider == "mock":
+        return MockAuthAdapter(), None
 
     if provider == "postgres":
         if settings.DATABASE_URL is None:
@@ -59,5 +64,5 @@ async def create_auth_adapter() -> tuple[AuthPort, object | None]:
 
     raise ValueError(
         f"Unknown AUTH_PROVIDER: {settings.AUTH_PROVIDER}. "
-        "Use 'postgres' or 'supabase'."
+        "Use 'postgres', 'supabase', or 'mock' (for tests)."
     )

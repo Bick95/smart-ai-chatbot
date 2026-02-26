@@ -30,15 +30,6 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 _USER_ID_PATH = Path(..., pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 
 
-def _require_auth(auth: AuthPort | None) -> AuthPort:
-    if auth is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Authentication is not configured. Set AUTH_ENABLED=true and provider config.",
-        )
-    return auth
-
-
 def _user_to_response(user: AuthUser) -> AuthUserResponse:
     return AuthUserResponse(
         id=user.id, email=user.email, username=user.username, created_at=user.created_at
@@ -65,10 +56,9 @@ def _user_to_tokens_response(
 @router.post("/signup", response_model=AuthTokensResponse)
 async def signup(
     body: SignupRequest,
-    auth: AuthPort | None = Depends(get_auth),
+    auth: AuthPort = Depends(get_auth),
 ) -> AuthTokensResponse:
     """Create a new user account. Returns user, auth JWT and refresh JWT."""
-    auth = _require_auth(auth)
     try:
         user = await auth.signup(
             email=body.email,
@@ -85,14 +75,13 @@ async def signup(
 @router.post("/login", response_model=AuthTokensResponse)
 async def login(
     body: LoginRequest,
-    auth: AuthPort | None = Depends(get_auth),
+    auth: AuthPort = Depends(get_auth),
 ) -> AuthTokensResponse:
     """Verify credentials and return user with auth JWT and refresh JWT.
 
     Passwords with fewer than 8 characters are rejected without verification
     (consistent with signup min length).
     """
-    auth = _require_auth(auth)
     user = await auth.verify_credentials(email=body.email, password=body.password)
     if user is None:
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -102,10 +91,9 @@ async def login(
 @router.post("/refresh", response_model=AuthTokensResponse)
 async def refresh(
     body: RefreshRequest,
-    auth: AuthPort | None = Depends(get_auth),
+    auth: AuthPort = Depends(get_auth),
 ) -> AuthTokensResponse:
     """Exchange a valid refresh token for a new auth token and refresh token."""
-    auth = _require_auth(auth)
     subject = verify_refresh_token(body.refresh_token)
     if subject is None:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
@@ -132,11 +120,10 @@ def _require_own_user(subject: SubjectPayload, user_id: str) -> None:
 @router.get("/users/{user_id}", response_model=AuthUserResponse)
 async def get_user(
     user_id: str = _USER_ID_PATH,
-    auth: AuthPort | None = Depends(get_auth),
+    auth: AuthPort = Depends(get_auth),
     subject: SubjectPayload = Depends(get_current_subject),
 ) -> AuthUserResponse:
     """Get a user by ID. Requires auth; users can only access their own data."""
-    auth = _require_auth(auth)
     _require_own_user(subject, user_id)
     user = await auth.get_user_by_id(user_id)
     if user is None:
@@ -148,11 +135,10 @@ async def get_user(
 async def update_username(
     user_id: str = _USER_ID_PATH,
     body: UpdateUsernameRequest = Body(),
-    auth: AuthPort | None = Depends(get_auth),
+    auth: AuthPort = Depends(get_auth),
     subject: SubjectPayload = Depends(get_current_subject),
 ) -> AuthUserResponse:
     """Update a user's username. Requires auth; users can only update their own."""
-    auth = _require_auth(auth)
     _require_own_user(subject, user_id)
     ok = await auth.update_username(user_id, body.username)
     if not ok:
@@ -167,11 +153,10 @@ async def update_username(
 async def update_password(
     user_id: str = _USER_ID_PATH,
     body: UpdatePasswordRequest = Body(),
-    auth: AuthPort | None = Depends(get_auth),
+    auth: AuthPort = Depends(get_auth),
     subject: SubjectPayload = Depends(get_current_subject),
 ) -> dict:
     """Update a user's password. Requires auth; users can only update their own."""
-    auth = _require_auth(auth)
     _require_own_user(subject, user_id)
     ok = await auth.update_password(user_id, body.password)
     if not ok:
@@ -182,11 +167,10 @@ async def update_password(
 @router.delete("/users/{user_id}")
 async def delete_user(
     user_id: str = _USER_ID_PATH,
-    auth: AuthPort | None = Depends(get_auth),
+    auth: AuthPort = Depends(get_auth),
     subject: SubjectPayload = Depends(get_current_subject),
 ) -> dict:
     """Delete a user account. Requires auth; users can only delete their own."""
-    auth = _require_auth(auth)
     _require_own_user(subject, user_id)
     ok = await auth.delete_account(user_id)
     if not ok:

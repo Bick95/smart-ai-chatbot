@@ -2,15 +2,17 @@
 
 import os
 
-# Set dummy API key for tests if not present (avoids failures when .env is missing)
-os.environ.setdefault("OPENAI_API_KEY", "sk-test-dummy-for-unit-tests")
+# Set env for tests before app import (auth is mandatory; mock needs no DB)
+os.environ["OPENAI_API_KEY"] = "sk-test-dummy-for-unit-tests"
+os.environ["AUTH_PROVIDER"] = "mock"
+os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-for-unit-tests"
 
 import pytest
 from fastapi.testclient import TestClient
 
 from src.auth.utils.jwt import SubjectPayload, SubjectType
 from src.server.app import app
-from src.server.dependencies import get_agent_graph, get_auth, get_current_subject
+from src.server.dependencies import get_agent_graph, get_current_subject
 
 
 # Dummy subject for tests that bypass auth (e.g. chat logic, path validation)
@@ -35,8 +37,9 @@ class MockAgent:
 
 @pytest.fixture
 def client():
-    """Test client with default app."""
-    return TestClient(app)
+    """Test client with default app. Uses context manager so lifespan runs."""
+    with TestClient(app) as c:
+        yield c
 
 
 @pytest.fixture
@@ -55,15 +58,9 @@ def client_with_mock_agent(client):
 def client_with_auth_bypass(client):
     """Test client with auth bypass (for testing path validation, etc.).
 
-    Overrides get_current_subject and get_auth so requests reach route logic.
+    Overrides get_current_subject so requests reach route logic without a real JWT.
     Use for tests that need to verify path/body validation (e.g. invalid UUID).
     """
-    mock_auth = object()  # Minimal mock; route won't call it if validation fails first
-
-    def _mock_get_auth(request):
-        return mock_auth
-
     app.dependency_overrides[get_current_subject] = _mock_get_current_subject
-    app.dependency_overrides[get_auth] = _mock_get_auth
     yield client
     app.dependency_overrides.clear()
