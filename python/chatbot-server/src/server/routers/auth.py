@@ -7,6 +7,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Path
 from src.auth.ports.auth_port import AuthPort
 from src.auth.ports.types import AuthUser
 from src.auth.utils.jwt import (
+    SubjectPayload,
     SubjectType,
     create_auth_token,
     create_refresh_token,
@@ -44,11 +45,16 @@ def _user_to_response(user: AuthUser) -> AuthUserResponse:
     )
 
 
-def _user_to_tokens_response(user: AuthUser) -> AuthTokensResponse:
+def _user_to_tokens_response(
+    user: AuthUser,
+    *,
+    subject: SubjectPayload | None = None,
+) -> AuthTokensResponse:
+    sub = subject or SubjectPayload(subject_type=SubjectType.USER, subject_id=user.id)
     return AuthTokensResponse(
         user=_user_to_response(user),
-        auth_token=create_auth_token(user.id),
-        refresh_token=create_refresh_token(user.id),
+        auth_token=create_auth_token(sub),
+        refresh_token=create_refresh_token(sub),
     )
 
 
@@ -105,7 +111,7 @@ async def refresh(
             user = await auth.get_user_by_id(subject.subject_id)
             if user is None:
                 raise HTTPException(status_code=401, detail="User no longer exists")
-            return _user_to_tokens_response(user)
+            return _user_to_tokens_response(user, subject=subject)
         case SubjectType.SERVICE_ACCOUNT:
             raise HTTPException(
                 status_code=501,

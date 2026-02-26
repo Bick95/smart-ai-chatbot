@@ -8,7 +8,7 @@ from enum import Enum
 import jwt
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator, model_validator
 
-from src.auth.utils.validation import is_valid_uuid4, validate_uuid4
+from src.auth.utils.validation import is_valid_uuid4
 from src.settings import settings
 from src.utils.logging import get_logger
 
@@ -57,39 +57,24 @@ class SubjectPayload(BaseModel):
         return v
 
 
-def create_auth_token(
-    subject_id: str,
-    *,
-    subject_type: SubjectType = SubjectType.USER,
-) -> str:
+def create_auth_token(subject: SubjectPayload) -> str:
     """Create a short-lived auth JWT (default 15 min)."""
-    return _create_token(
-        subject_type.value, subject_id, TOKEN_TYPE_AUTH, settings.JWT_AUTH_TTL_SECONDS
-    )
+    return _create_token(subject, TOKEN_TYPE_AUTH, settings.JWT_AUTH_TTL_SECONDS)
 
 
-def create_refresh_token(
-    subject_id: str,
-    *,
-    subject_type: SubjectType = SubjectType.USER,
-) -> str:
+def create_refresh_token(subject: SubjectPayload) -> str:
     """Create a long-lived refresh JWT (default 24 h)."""
-    return _create_token(
-        subject_type.value, subject_id, TOKEN_TYPE_REFRESH, settings.JWT_REFRESH_TTL_SECONDS
-    )
+    return _create_token(subject, TOKEN_TYPE_REFRESH, settings.JWT_REFRESH_TTL_SECONDS)
 
 
-def _create_token(
-    subject_type: str, subject_id: str, token_type: str, ttl_seconds: int
-) -> str:
-    validate_uuid4(subject_id)
+def _create_token(subject: SubjectPayload, token_type: str, ttl_seconds: int) -> str:
     secret = settings.JWT_SECRET_KEY
     if secret is None:
         raise ValueError("JWT_SECRET_KEY is not set")
     now = int(time.time())
     token_payload = {
-        "subject_type": subject_type,
-        "subject_id": subject_id,
+        "subject_type": subject.subject_type.value,
+        "subject_id": subject.subject_id,
         "token_type": token_type,
         "iat": now,
         "exp": now + ttl_seconds,
