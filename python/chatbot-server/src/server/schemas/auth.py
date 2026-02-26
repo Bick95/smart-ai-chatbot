@@ -10,11 +10,18 @@ from src.settings import settings
 
 
 class SignupRequest(BaseModel):
-    """Request body for signup."""
+    """Request body for signup.
+
+    invite_key is required when SIGNUP_INVITE_KEY is set in settings.
+    """
 
     email: str = Field(..., min_length=5, max_length=255)
     username: str = Field(..., min_length=1, max_length=255)
     password: str = Field(..., min_length=8, max_length=128)
+    invite_key: str | None = Field(
+        default=None,
+        description="Required when SIGNUP_INVITE_KEY is set; must match the configured key",
+    )
 
 
 class LoginRequest(BaseModel):

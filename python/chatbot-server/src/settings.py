@@ -92,6 +92,10 @@ class Settings(BaseSettings):
         ge=3600,
         description="Refresh JWT TTL in seconds (default 24 h)",
     )
+    SIGNUP_INVITE_KEY: SecretStr | None = Field(
+        default=None,
+        description="When set, signup requires this key in the request; omit for open signup",
+    )
 
     # Secrets
     OPENAI_API_KEY: SecretStr

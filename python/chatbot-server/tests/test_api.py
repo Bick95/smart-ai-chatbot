@@ -1,5 +1,7 @@
 """Tests for API endpoints."""
 
+from unittest.mock import patch
+
 import pytest
 
 
@@ -27,6 +29,50 @@ class TestAuthEndpoints:
             json={"email": "unknown@b.com", "password": "password123"},
         )
         assert response.status_code == 401
+
+    def test_signup_requires_invite_key_when_configured(self, client):
+        """When SIGNUP_INVITE_KEY is set, signup requires matching invite_key."""
+        from pydantic import SecretStr
+
+        from src.settings import settings
+
+        with patch.object(settings, "SIGNUP_INVITE_KEY", SecretStr("my-secret-invite")):
+            # Without invite_key -> 403
+            r = client.post(
+                "/api/v1/auth/signup",
+                json={
+                    "email": "new@b.com",
+                    "username": "newuser",
+                    "password": "password123",
+                },
+            )
+            assert r.status_code == 403
+            assert "invite" in r.json()["detail"].lower()
+
+            # With wrong invite_key -> 403
+            r = client.post(
+                "/api/v1/auth/signup",
+                json={
+                    "email": "new@b.com",
+                    "username": "newuser",
+                    "password": "password123",
+                    "invite_key": "wrong-key",
+                },
+            )
+            assert r.status_code == 403
+
+            # With correct invite_key -> 200
+            r = client.post(
+                "/api/v1/auth/signup",
+                json={
+                    "email": "invited@b.com",
+                    "username": "inviteduser",
+                    "password": "password123",
+                    "invite_key": "my-secret-invite",
+                },
+            )
+            assert r.status_code == 200
+            assert r.json()["user"]["email"] == "invited@b.com"
 
     def test_signup_rejects_short_password(self, client):
         response = client.post(

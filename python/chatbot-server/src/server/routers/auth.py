@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import secrets
+
 from fastapi import APIRouter, Body, Depends, HTTPException, Path
+
+from src.settings import settings
 
 from src.auth.ports.auth_port import AuthPort
 from src.auth.ports.types import AuthUser
@@ -59,6 +63,15 @@ async def signup(
     auth: AuthPort = Depends(get_auth),
 ) -> AuthTokensResponse:
     """Create a new user account. Returns user, auth JWT and refresh JWT."""
+    if settings.SIGNUP_INVITE_KEY is not None:
+        expected = settings.SIGNUP_INVITE_KEY.get_secret_value()
+        if body.invite_key is None or not secrets.compare_digest(
+            body.invite_key, expected
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Invalid or missing invite key",
+            )
     try:
         user = await auth.signup(
             email=body.email,
