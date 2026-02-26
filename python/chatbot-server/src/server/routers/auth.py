@@ -69,7 +69,8 @@ async def signup(
     except Exception as e:
         if "unique" in str(e).lower() or "duplicate" in str(e).lower():
             raise HTTPException(status_code=409, detail="Email already registered")
-        raise HTTPException(status_code=400, detail=str(e))
+        # Never expose internal error details to clients
+        raise HTTPException(status_code=400, detail="Registration failed")
 
 
 @router.post("/login", response_model=AuthTokensResponse)

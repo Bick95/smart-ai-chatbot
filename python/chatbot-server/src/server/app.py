@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.requests import HTTPException as StarletteHTTPException
 
 from src.auth.factory import create_auth_adapter
 from src.chatbot.prompts import (
@@ -16,6 +17,7 @@ from src.chatbot.prompts import (
 from src.server.middleware import (
     RequestLoggingMiddleware,
     sanitized_exception_handler,
+    sanitized_http_exception_handler,
 )
 from src.server.routers.auth import router as auth_router
 from src.server.routers.stateless_chat import router as stateless_chat_router
@@ -69,6 +71,10 @@ def create_app() -> FastAPI:
     )
 
     app.add_exception_handler(Exception, sanitized_exception_handler)
+    # Sanitize 5xx HTTPException details (fallback for any dynamic error leakage)
+    app.add_exception_handler(
+        StarletteHTTPException, sanitized_http_exception_handler
+    )
 
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(

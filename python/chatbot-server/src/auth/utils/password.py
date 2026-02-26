@@ -27,5 +27,6 @@ def verify_password(plain: str, hashed: str) -> bool:
     except (InvalidHashError, VerificationError):
         return False
     except Exception as e:
-        _logger.exception("Unexpected error in verify_password: %s", e)
+        # Log type only; exception message may contain hash or other sensitive data
+        _logger.warning("Unexpected error in verify_password: %s", type(e).__name__)
         return False

@@ -115,5 +115,6 @@ def _verify_token(token: str, expected_token_type: str) -> SubjectPayload | None
     except (jwt.PyJWTError, ValueError):
         return None
     except Exception as e:
-        _logger.warning("JWT verification failed: %s", e, exc_info=True)
+        # Log type only; exception message may contain token fragments
+        _logger.warning("JWT verification failed: %s", type(e).__name__)
         return None

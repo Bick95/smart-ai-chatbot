@@ -9,12 +9,38 @@ from typing import Any
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import HTTPException as StarletteHTTPException
 
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
 SANITIZED_500_MESSAGE = "Internal Server Error"
+
+
+async def sanitized_http_exception_handler(
+    request: Request, exc: StarletteHTTPException
+) -> JSONResponse:
+    """
+    Sanitize HTTPException responses: 5xx details are never exposed to clients.
+
+    Acts as a fallback so any 5xx raised with dynamic detail gets a generic message.
+    """
+    if exc.status_code >= 500:
+        logger.warning(
+            "Sanitizing 5xx HTTPException for %s %s: %s",
+            request.method,
+            request.url.path,
+            type(exc).__name__,
+        )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": SANITIZED_500_MESSAGE},
+        )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
