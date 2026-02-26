@@ -50,6 +50,10 @@ def _user_to_tokens_response(
     *,
     subject: SubjectPayload | None = None,
 ) -> AuthTokensResponse:
+    if subject is not None and subject.subject_id != user.id:
+        raise ValueError(
+            f"subject.subject_id ({subject.subject_id!r}) does not match user.id ({user.id!r})"
+        )
     sub = subject or SubjectPayload(subject_type=SubjectType.USER, subject_id=user.id)
     return AuthTokensResponse(
         user=_user_to_response(user),
