@@ -81,6 +81,30 @@ class TestAuthEndpoints:
         )
         assert response.status_code == 422
 
+    def test_signup_rejects_invalid_email_format(self, client):
+        """Email with suspicious/invalid characters is rejected (422)."""
+        response = client.post(
+            "/api/v1/auth/signup",
+            json={
+                "email": "user'; DROP TABLE users;--@x.com",
+                "username": "validuser",
+                "password": "password123",
+            },
+        )
+        assert response.status_code == 422
+
+    def test_signup_rejects_invalid_username_format(self, client):
+        """Username with non-allowed characters is rejected (422)."""
+        response = client.post(
+            "/api/v1/auth/signup",
+            json={
+                "email": "user@example.com",
+                "username": "user<script>alert(1)</script>",
+                "password": "password123",
+            },
+        )
+        assert response.status_code == 422
+
     def test_login_rejects_short_password_without_verification(self, client):
         """Password < 8 chars rejected by validation (422) before auth attempt."""
         response = client.post(
