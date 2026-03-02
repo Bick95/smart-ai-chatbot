@@ -25,6 +25,7 @@ from src.server.schemas.auth import (
     LoginRequest,
     RefreshRequest,
     SignupRequest,
+    UpdateEmailRequest,
     UpdatePasswordRequest,
     UpdateUsernameRequest,
 )
@@ -158,6 +159,30 @@ async def update_username(
     """Update a user's username. Requires auth; users can only update their own."""
     _require_own_user(subject, user_id)
     ok = await auth.update_username(user_id, body.username)
+    if not ok:
+        raise HTTPException(status_code=404, detail="User not found")
+    user = await auth.get_user_by_id(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return _user_to_response(user)
+
+
+@router.patch("/users/{user_id}/email", response_model=AuthUserResponse)
+async def update_email(
+    user_id: str = _USER_ID_PATH,
+    body: UpdateEmailRequest = Body(),
+    auth: AuthPort = Depends(get_auth),
+    subject: SubjectPayload = Depends(get_current_subject),
+) -> AuthUserResponse:
+    """Update a user's email. Requires auth; users can only update their own."""
+    _require_own_user(subject, user_id)
+    try:
+        ok = await auth.update_email(user_id, body.email)
+    except Exception as e:
+        if "unique" in str(e).lower() or "duplicate" in str(e).lower() or "already" in str(e).lower():
+            raise HTTPException(status_code=409, detail="Email already registered")
+        _logger.warning("update_email: unexpected %s", type(e).__name__, exc_info=True)
+        raise HTTPException(status_code=400, detail="Email update failed")
     if not ok:
         raise HTTPException(status_code=404, detail="User not found")
     user = await auth.get_user_by_id(user_id)

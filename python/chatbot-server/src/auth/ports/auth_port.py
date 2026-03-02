@@ -29,6 +29,10 @@ class AuthPort(Protocol):
         """Update a user's username. Returns True if updated."""
         ...
 
+    async def update_email(self, user_id: str, new_email: str) -> bool:
+        """Update a user's email. Returns True if updated. Raises ValueError if email already in use."""
+        ...
+
     async def update_password(self, user_id: str, new_password: str) -> bool:
         """Update a user's password. Password is hashed before storage."""
         ...

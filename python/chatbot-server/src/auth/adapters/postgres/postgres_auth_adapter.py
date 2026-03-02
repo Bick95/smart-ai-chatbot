@@ -67,6 +67,23 @@ class PostgresAuthAdapter:
             )
         return result == "UPDATE 1"
 
+    async def update_email(self, user_id: str, new_email: str) -> bool:
+        email_lower = new_email.lower().strip()
+        async with self._pool.acquire() as conn:
+            try:
+                result = await conn.execute(
+                    """
+                    UPDATE auth_users
+                    SET email = $1, updated_at = NOW()
+                    WHERE id = $2
+                    """,
+                    email_lower,
+                    user_id,
+                )
+            except asyncpg.UniqueViolationError:
+                raise ValueError("Email already registered")
+        return result == "UPDATE 1"
+
     async def update_password(self, user_id: str, new_password: str) -> bool:
         password_hash = hash_password(new_password)
         async with self._pool.acquire() as conn:

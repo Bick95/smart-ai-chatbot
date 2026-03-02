@@ -54,6 +54,25 @@ class MockAuthAdapter:
         )
         return True
 
+    async def update_email(self, user_id: str, new_email: str) -> bool:
+        if user_id not in self._users:
+            return False
+        email_lower = new_email.lower().strip()
+        for uid, u in self._users.items():
+            if uid != user_id and u.user.email == email_lower:
+                raise ValueError("Email already registered")
+        stored = self._users[user_id]
+        self._users[user_id] = _StoredUser(
+            user=AuthUser(
+                id=stored.user.id,
+                email=email_lower,
+                username=stored.user.username,
+                created_at=stored.user.created_at,
+            ),
+            password_hash=stored.password_hash,
+        )
+        return True
+
     async def update_password(self, user_id: str, new_password: str) -> bool:
         if user_id not in self._users:
             return False

@@ -102,6 +102,18 @@ class SupabaseAuthAdapter:
         await asyncio.to_thread(_update)
         return True
 
+    async def update_email(self, user_id: str, new_email: str) -> bool:
+        email_lower = new_email.lower().strip()
+
+        def _update() -> None:
+            self._client.auth.admin.update_user_by_id(
+                user_id,
+                {"email": email_lower, "email_confirm": True},
+            )
+
+        await asyncio.to_thread(_update)
+        return True
+
     async def update_password(self, user_id: str, new_password: str) -> bool:
         hashed = hash_password(new_password)
 

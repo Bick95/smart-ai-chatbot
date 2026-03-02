@@ -74,6 +74,12 @@ class UpdateUsernameRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=255)
 
 
+class UpdateEmailRequest(BaseModel):
+    """Request body for updating email."""
+
+    email: str = Field(..., min_length=5, max_length=255)
+
+
 class UpdatePasswordRequest(BaseModel):
     """Request body for updating password."""
 
