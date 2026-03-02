@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 
 import { sendChatMessages } from "@/api/stateless_chat";
+import { formatCaughtError } from "@/lib/format-errors";
 import { ChatUI } from "@/components/chat";
 import type { ChatApiMessage } from "@/stores/chat/schemas";
 import { useAuthStore } from "@/stores/auth";
@@ -42,7 +43,7 @@ export function ChatPage() {
                 });
             } catch (err) {
                 setError({
-                    message: err instanceof Error ? err.message : String(err),
+                    message: formatCaughtError(err, "Sending the message failed."),
                 });
             }
         },

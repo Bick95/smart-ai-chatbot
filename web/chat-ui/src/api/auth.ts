@@ -2,6 +2,18 @@ import { API_BASE } from "@/constants";
 import type { AuthTokensResponse } from "@/stores/auth/schemas";
 import { authTokensResponseSchema } from "@/stores/auth/schemas";
 
+/** Extract a user-facing message from FastAPI-style error detail (string or array of {msg}). */
+function formatApiErrorDetail(detail: unknown): string {
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) {
+        const msgs = detail
+            .map((d) => (d && typeof d === "object" && "msg" in d ? String((d as { msg: unknown }).msg) : null))
+            .filter(Boolean);
+        return msgs.length > 0 ? msgs.join(" ") : "Request failed";
+    }
+    return "Request failed";
+}
+
 export interface SignupPayload {
     email: string;
     username: string;
@@ -23,7 +35,8 @@ export async function signup(payload: SignupPayload): Promise<AuthTokensResponse
 
     if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail ?? `Signup failed (${res.status})`);
+        const message = data.detail != null ? formatApiErrorDetail(data.detail) : `Signup failed (${res.status})`;
+        throw new Error(message);
     }
 
     const json: unknown = await res.json();
@@ -39,7 +52,8 @@ export async function login(payload: LoginPayload): Promise<AuthTokensResponse> 
 
     if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail ?? `Login failed (${res.status})`);
+        const message = data.detail != null ? formatApiErrorDetail(data.detail) : `Login failed (${res.status})`;
+        throw new Error(message);
     }
 
     const json: unknown = await res.json();
@@ -57,7 +71,8 @@ export async function refreshToken(
 
     if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail ?? `Token refresh failed (${res.status})`);
+        const message = data.detail != null ? formatApiErrorDetail(data.detail) : `Token refresh failed (${res.status})`;
+        throw new Error(message);
     }
 
     const json: unknown = await res.json();

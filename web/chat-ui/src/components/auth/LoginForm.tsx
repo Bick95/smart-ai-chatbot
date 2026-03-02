@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login } from "@/api/auth";
+import { formatCaughtError, formatFieldErrors } from "@/lib/format-errors";
 import { useAuthStore } from "@/stores/auth";
 
 const loginSchema = z.object({
@@ -43,7 +44,7 @@ export function LoginForm({ onSuccess, onSwitchToSignup }: LoginFormProps) {
                 setAuth(data.user, data.auth_token, data.refresh_token);
                 onSuccess?.();
             } catch (err) {
-                setError(err instanceof Error ? err.message : "Login failed");
+                setError(formatCaughtError(err, "Login failed"));
             }
         },
     });
@@ -91,7 +92,7 @@ export function LoginForm({ onSuccess, onSwitchToSignup }: LoginFormProps) {
                                 />
                                 {field.state.meta.errors.length > 0 && (
                                     <p className="text-destructive text-xs">
-                                        {field.state.meta.errors.join(", ")}
+                                        {formatFieldErrors(field.state.meta.errors)}
                                     </p>
                                 )}
                             </div>
@@ -120,7 +121,7 @@ export function LoginForm({ onSuccess, onSwitchToSignup }: LoginFormProps) {
                                 />
                                 {field.state.meta.errors.length > 0 && (
                                     <p className="text-destructive text-xs">
-                                        {field.state.meta.errors.join(", ")}
+                                        {formatFieldErrors(field.state.meta.errors)}
                                     </p>
                                 )}
                             </div>

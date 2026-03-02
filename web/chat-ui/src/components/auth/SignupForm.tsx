@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signup } from "@/api/auth";
+import { formatCaughtError, formatFieldErrors } from "@/lib/format-errors";
 import { useAuthStore } from "@/stores/auth";
 
 const signupSchema = z.object({
@@ -58,7 +59,7 @@ export function SignupForm({ onSuccess, onSwitchToLogin }: SignupFormProps) {
                 setAuth(data.user, data.auth_token, data.refresh_token);
                 onSuccess?.();
             } catch (err) {
-                setError(err instanceof Error ? err.message : "Signup failed");
+                setError(formatCaughtError(err, "Signup failed"));
             }
         },
     });
@@ -106,7 +107,7 @@ export function SignupForm({ onSuccess, onSwitchToLogin }: SignupFormProps) {
                                 />
                                 {field.state.meta.errors.length > 0 && (
                                     <p className="text-destructive text-xs">
-                                        {field.state.meta.errors.join(", ")}
+                                        {formatFieldErrors(field.state.meta.errors)}
                                     </p>
                                 )}
                             </div>
@@ -135,7 +136,7 @@ export function SignupForm({ onSuccess, onSwitchToLogin }: SignupFormProps) {
                                 />
                                 {field.state.meta.errors.length > 0 && (
                                     <p className="text-destructive text-xs">
-                                        {field.state.meta.errors.join(", ")}
+                                        {formatFieldErrors(field.state.meta.errors)}
                                     </p>
                                 )}
                             </div>
@@ -164,7 +165,7 @@ export function SignupForm({ onSuccess, onSwitchToLogin }: SignupFormProps) {
                                 />
                                 {field.state.meta.errors.length > 0 && (
                                     <p className="text-destructive text-xs">
-                                        {field.state.meta.errors.join(", ")}
+                                        {formatFieldErrors(field.state.meta.errors)}
                                     </p>
                                 )}
                             </div>
