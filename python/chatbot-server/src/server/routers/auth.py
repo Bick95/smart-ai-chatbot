@@ -160,10 +160,10 @@ async def update_username(
     _require_own_user(subject, user_id)
     ok = await auth.update_username(user_id, body.username)
     if not ok:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found or update failed")
     user = await auth.get_user_by_id(user_id)
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found or update failed")
     return _user_to_response(user)
 
 
@@ -184,10 +184,10 @@ async def update_email(
         _logger.warning("update_email: unexpected %s", type(e).__name__, exc_info=True)
         raise HTTPException(status_code=400, detail="Email update failed")
     if not ok:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found or update failed")
     user = await auth.get_user_by_id(user_id)
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found or update failed")
     return _user_to_response(user)
 
 
@@ -202,7 +202,7 @@ async def update_password(
     _require_own_user(subject, user_id)
     ok = await auth.update_password(user_id, body.password)
     if not ok:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found or update failed")
     return {"status": "ok"}
 
 
@@ -216,5 +216,5 @@ async def delete_user(
     _require_own_user(subject, user_id)
     ok = await auth.delete_account(user_id)
     if not ok:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found or delete failed")
     return {"status": "ok"}

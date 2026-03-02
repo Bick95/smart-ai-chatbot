@@ -29,7 +29,8 @@ async def sanitized_http_exception_handler(
     """
     if exc.status_code >= 500:
         logger.warning(
-            "Sanitizing 5xx HTTPException for %s %s: %s",
+            "Sanitizing HTTPException %s for %s %s: %s",
+            exc.status_code,
             request.method,
             request.url.path,
             type(exc).__name__,

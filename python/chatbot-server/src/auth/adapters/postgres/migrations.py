@@ -5,7 +5,9 @@ from __future__ import annotations
 import asyncpg
 from pathlib import Path
 
+from src.utils.logging import get_logger
 
+_logger = get_logger(__name__)
 MIGRATIONS_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent / "migrations"
 
 
@@ -13,6 +15,7 @@ async def run_migrations(pool: asyncpg.Pool) -> None:
     """Run pending SQL migrations in order."""
     sql_files = sorted(MIGRATIONS_DIR.glob("*.sql"))
     if not sql_files:
+        _logger.warning("No migration files found in %s", MIGRATIONS_DIR)
         return
 
     async with pool.acquire() as conn:

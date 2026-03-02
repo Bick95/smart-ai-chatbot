@@ -184,11 +184,12 @@ class SupabaseAuthAdapter:
         """Fallback: list_users then filter (inefficient)."""
 
         def _get() -> AuthUser | None:
+            email_lower = email.lower().strip()
             response = self._client.auth.admin.list_users()
             users = getattr(response, "users", []) or []
             for u in users:
                 u_email: str | None = getattr(u, "email", None)
-                if u_email and u_email.lower() == email.lower().strip():
+                if u_email and u_email.lower() == email_lower:
                     u_meta = getattr(u, "user_metadata", {}) or {}
                     u_username = u_meta.get("username", "") if isinstance(u_meta, dict) else ""
                     created_at = _parse_created_at(getattr(u, "created_at", None))
