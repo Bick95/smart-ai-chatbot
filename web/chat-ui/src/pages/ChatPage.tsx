@@ -13,62 +13,58 @@ export function ChatPage() {
     const [isRetrying, setIsRetrying] = useState(false);
     const authToken = useAuthStore((s) => s.authToken);
 
-    const onSendMessage = useCallback(async (content: string) => {
-        setError(null);
-        const store = useChatStore.getState();
-        store.addMessageToCurrent({ role: "user", content });
-        const chat = store.getCurrentChat();
-        const chatId = store.currentChatId;
-        if (!chatId || !chat) return;
+    const sendAndFetchReply = useCallback(
+        async (userContent?: string) => {
+            setError(null);
+            const store = useChatStore.getState();
 
-        const apiMessages: ChatApiMessage[] = chat.messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-        }));
+            if (userContent !== undefined) {
+                store.addMessageToCurrent({ role: "user", content: userContent });
+            }
 
-        try {
-            const reply: string = await sendChatMessages(apiMessages, authToken ?? undefined);
-            store.addMessage(chatId, {
-                role: "assistant",
-                content: reply,
-            });
-        } catch (err) {
-            setError({
-                message: err instanceof Error ? err.message : String(err),
-            });
-        }
-    }, [authToken]);
+            const chat = store.getCurrentChat();
+            const chatId = store.currentChatId;
+            if (!chatId || !chat) return;
+
+            const apiMessages: ChatApiMessage[] = chat.messages.map((m) => ({
+                role: m.role,
+                content: m.content,
+            }));
+
+            try {
+                const reply = await sendChatMessages(
+                    apiMessages,
+                    authToken ?? undefined
+                );
+                store.addMessage(chatId, {
+                    role: "assistant",
+                    content: reply,
+                });
+            } catch (err) {
+                setError({
+                    message: err instanceof Error ? err.message : String(err),
+                });
+            }
+        },
+        [authToken]
+    );
+
+    const onSendMessage = useCallback(
+        (content: string): Promise<void> => {
+            if (!content.trim()) return Promise.resolve();
+            return sendAndFetchReply(content);
+        },
+        [sendAndFetchReply]
+    );
 
     const onRetry = useCallback(async () => {
         setIsRetrying(true);
-        setError(null);
-        const store = useChatStore.getState();
-        const chat = store.getCurrentChat();
-        const chatId = store.currentChatId;
-        if (!chatId || !chat) {
-            setIsRetrying(false);
-            return;
-        }
-
-        const apiMessages: ChatApiMessage[] = chat.messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-        }));
-
         try {
-            const reply: string = await sendChatMessages(apiMessages, authToken ?? undefined);
-            store.addMessage(chatId, {
-                role: "assistant",
-                content: reply,
-            });
-        } catch (err) {
-            setError({
-                message: err instanceof Error ? err.message : String(err),
-            });
+            await sendAndFetchReply();
         } finally {
             setIsRetrying(false);
         }
-    }, [authToken]);
+    }, [sendAndFetchReply]);
 
     return (
         <ChatUI
