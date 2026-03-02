@@ -25,6 +25,13 @@ def _parse_created_at(value: str | None) -> datetime | None:
         return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except (ValueError, TypeError):
         return None
+    except Exception as e:
+        _logger.warning(
+            "_parse_created_at: unexpected %s",
+            type(e).__name__,
+            exc_info=True,
+        )
+        raise
 
 
 class SupabaseAuthAdapter:

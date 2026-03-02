@@ -26,7 +26,7 @@ class SubjectType(str, Enum):
 
 
 class SubjectPayload(BaseModel):
-    """Subject claim extracted from a decoded token (who can act on the system).
+    """Subject claim extracted from a decoded token (Subjects are those who can act on the system).
 
     All validations run when creating from raw token data via model_validate.
     subject_type must be a valid SubjectType. subject_id must be UUID-v4.
@@ -58,12 +58,12 @@ class SubjectPayload(BaseModel):
 
 
 def create_auth_token(subject: SubjectPayload) -> str:
-    """Create a short-lived auth JWT (default 15 min)."""
+    """Create a short-lived auth JWT."""
     return _create_token(subject, TOKEN_TYPE_AUTH, settings.JWT_AUTH_TTL_SECONDS)
 
 
 def create_refresh_token(subject: SubjectPayload) -> str:
-    """Create a long-lived refresh JWT (default 24 h)."""
+    """Create a long-lived refresh JWT."""
     return _create_token(subject, TOKEN_TYPE_REFRESH, settings.JWT_REFRESH_TTL_SECONDS)
 
 
@@ -99,7 +99,7 @@ def verify_auth_token(token: str) -> SubjectPayload | None:
 def _verify_token(token: str, expected_token_type: str) -> SubjectPayload | None:
     secret = settings.JWT_SECRET_KEY
     if secret is None:
-        return None
+        raise ValueError("JWT_SECRET_KEY is not set")
     try:
         token_payload = jwt.decode(
             token,

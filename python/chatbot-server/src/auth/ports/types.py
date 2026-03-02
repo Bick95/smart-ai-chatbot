@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from src.utils.logging import get_logger
+
+_logger = get_logger(__name__)
+
 
 @dataclass(frozen=True)
 class AuthUser:
@@ -23,6 +27,10 @@ class AuthUser:
         if isinstance(created, str):
             created = datetime.fromisoformat(created.replace("Z", "+00:00"))
         elif created is not None and not isinstance(created, datetime):
+            _logger.warning(
+                "AuthUser.from_dict: created_at has unexpected type %s; setting to None",
+                type(created).__name__,
+            )
             created = None
         return cls(
             id=str(data["id"]),

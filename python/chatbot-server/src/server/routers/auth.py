@@ -18,6 +18,7 @@ from src.auth.utils.jwt import (
     verify_refresh_token,
 )
 from src.server.dependencies import get_auth, get_current_subject
+from src.utils.logging import get_logger
 from src.server.schemas.auth import (
     AuthTokensResponse,
     AuthUserResponse,
@@ -29,6 +30,7 @@ from src.server.schemas.auth import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+_logger = get_logger(__name__)
 
 # UUID-v4 pattern for user_id path params (RFC 4122, lowercase hex)
 _USER_ID_PATH = Path(..., pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
@@ -82,6 +84,7 @@ async def signup(
     except Exception as e:
         if "unique" in str(e).lower() or "duplicate" in str(e).lower():
             raise HTTPException(status_code=409, detail="Email already registered")
+        _logger.warning("signup: unexpected %s", type(e).__name__, exc_info=True)
         # Never expose internal error details to clients
         raise HTTPException(status_code=400, detail="Registration failed")
 
