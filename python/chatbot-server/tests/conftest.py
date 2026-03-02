@@ -5,7 +5,7 @@ import os
 # Set env for tests before app import (auth is mandatory; mock needs no DB)
 os.environ["OPENAI_API_KEY"] = "sk-test-dummy-for-unit-tests"
 os.environ["AUTH_PROVIDER"] = "mock"
-os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-for-unit-tests"
+os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-for-unit-tests-min-32-bytes"
 
 import pytest
 from fastapi.testclient import TestClient

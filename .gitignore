@@ -4,6 +4,9 @@
 **/*.env
 **/*.env.*
 
+## Local Postgres data (run_test_server.sh)
+**/postgres_data/
+
 ## Editor directories and files
 .vscode/*
 !.vscode/extensions.json

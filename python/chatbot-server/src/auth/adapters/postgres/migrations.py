@@ -18,6 +18,7 @@ async def run_migrations(pool: asyncpg.Pool) -> None:
         _logger.warning("No migration files found in %s", MIGRATIONS_DIR)
         return
 
+    _logger.info("Running migrations")
     async with pool.acquire() as conn:
         await conn.execute(
             """
@@ -41,3 +42,6 @@ async def run_migrations(pool: asyncpg.Pool) -> None:
             await conn.execute(
                 "INSERT INTO _migrations (name) VALUES ($1)", name
             )
+            _logger.info("Applied migration: %s", name)
+
+    _logger.info("Migrations complete")
