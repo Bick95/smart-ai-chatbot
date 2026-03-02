@@ -18,6 +18,14 @@ React + TypeScript + Vite frontend for the smart AI chatbot.
 
 In development, the Vite dev server proxies `/api` to `http://localhost:8000`, so no extra config is needed. For production or a different backend URL, set `VITE_CHATBOT_API_URL` (e.g. `https://your-api.example.com`).
 
+## Authentication
+
+The app includes signup, login, and JWT-based auth. JWTs are stored in the Zustand auth store and persisted to `localStorage`, so users stay signed in across refreshes. The chat API requires a valid Bearer token.
+
+- **Routes**: `/` (chat) and `/dashboard` require auth; `/login` and `/signup` are public.
+- **Sidebar**: Shows Sign in / Sign up when logged out; user profile and Sign out when logged in.
+- **Invite key**: If the backend has `SIGNUP_INVITE_KEY` set, the signup form includes an optional invite key field.
+
 ## React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
