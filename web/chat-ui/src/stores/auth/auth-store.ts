@@ -16,6 +16,7 @@ interface AuthState {
 
 interface AuthActions {
     setAuth: (user: AuthUser, authToken: string, refreshTokenValue: string) => void;
+    updateUser: (user: AuthUser) => void;
     clearAuth: () => void;
     /** Refresh tokens; updates store on success, clears on failure */
     refreshAuth: () => Promise<boolean>;
@@ -42,6 +43,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
                     refreshTokenValue,
                     isHydrating: false,
                 });
+            },
+
+            updateUser: (user) => {
+                set({ user });
             },
 
             clearAuth: () => {
