@@ -72,7 +72,7 @@ export function ChatUI({
     );
 
     return (
-        <div className="flex h-dvh flex-col bg-background">
+        <div className="flex min-h-0 flex-1 flex-col bg-background">
             <main className="flex flex-1 flex-col overflow-hidden">
                 <ScrollArea
                     className="min-h-0 flex-1"

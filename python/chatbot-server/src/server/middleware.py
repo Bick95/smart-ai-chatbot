@@ -9,12 +9,40 @@ from typing import Any
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import HTTPException as StarletteHTTPException
 
+from src.settings import settings
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
 SANITIZED_500_MESSAGE = "Internal Server Error"
+
+
+async def sanitized_http_exception_handler(
+    request: Request, exc: StarletteHTTPException
+) -> JSONResponse:
+    """
+    Sanitize HTTPException responses: 5xx details are never exposed to clients.
+
+    Acts as a fallback so any 5xx raised with dynamic detail gets a generic message.
+    """
+    if exc.status_code >= 500:
+        logger.warning(
+            "Sanitizing HTTPException %s for %s %s: %s",
+            exc.status_code,
+            request.method,
+            request.url.path,
+            type(exc).__name__,
+        )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": SANITIZED_500_MESSAGE},
+        )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
@@ -46,13 +74,23 @@ async def sanitized_exception_handler(request: Request, exc: Exception) -> JSONR
     Full exception details are logged for debugging; clients receive only a
     generic message to avoid leaking internal information.
     """
-    logger.exception(
-        "Unhandled exception for %s %s: %s",
-        request.method,
-        request.url.path,
-        exc,
-        exc_info=True,
-    )
+    # In production, avoid logging exception message or traceback
+    if settings.DEBUG:
+        logger.exception(
+            "Unhandled exception for %s %s: %s",
+            request.method,
+            request.url.path,
+            exc,
+            exc_info=True,
+        )
+    else:
+        logger.error(
+            "Unhandled exception for %s %s: %s",
+            request.method,
+            request.url.path,
+            type(exc).__name__,
+            exc_info=False,
+        )
     return JSONResponse(
         status_code=500,
         content={"detail": SANITIZED_500_MESSAGE},

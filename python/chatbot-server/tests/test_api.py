@@ -1,6 +1,137 @@
 """Tests for API endpoints."""
 
+from unittest.mock import patch
+
 import pytest
+
+
+@pytest.mark.unit
+class TestAuthEndpoints:
+    """Auth endpoints (auth is mandatory)."""
+
+    def test_signup_returns_user_and_tokens(self, client):
+        """Signup with mock auth returns user and JWTs."""
+        response = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "a@b.com", "username": "u", "password": "password123"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "user" in data
+        assert data["user"]["email"] == "a@b.com"
+        assert "auth_token" in data
+        assert "refresh_token" in data
+
+    def test_login_returns_401_for_invalid_credentials(self, client):
+        """Login with unknown user returns 401."""
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"email": "unknown@b.com", "password": "password123"},
+        )
+        assert response.status_code == 401
+
+    def test_signup_requires_invite_key_when_configured(self, client):
+        """When SIGNUP_INVITE_KEY is set, signup requires matching invite_key."""
+        from pydantic import SecretStr
+
+        from src.settings import settings
+
+        with patch.object(settings, "SIGNUP_INVITE_KEY", SecretStr("my-secret-invite")):
+            # Without invite_key -> 403
+            r = client.post(
+                "/api/v1/auth/signup",
+                json={
+                    "email": "new@b.com",
+                    "username": "newuser",
+                    "password": "password123",
+                },
+            )
+            assert r.status_code == 403
+            assert "invite" in r.json()["detail"].lower()
+
+            # With wrong invite_key -> 403
+            r = client.post(
+                "/api/v1/auth/signup",
+                json={
+                    "email": "new@b.com",
+                    "username": "newuser",
+                    "password": "password123",
+                    "invite_key": "wrong-key",
+                },
+            )
+            assert r.status_code == 403
+
+            # With correct invite_key -> 200
+            r = client.post(
+                "/api/v1/auth/signup",
+                json={
+                    "email": "invited@b.com",
+                    "username": "inviteduser",
+                    "password": "password123",
+                    "invite_key": "my-secret-invite",
+                },
+            )
+            assert r.status_code == 200
+            assert r.json()["user"]["email"] == "invited@b.com"
+
+    def test_signup_rejects_short_password(self, client):
+        response = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "a@b.com", "username": "u", "password": "short"},
+        )
+        assert response.status_code == 422
+
+    def test_signup_rejects_invalid_email_format(self, client):
+        """Email with suspicious/invalid characters is rejected (422)."""
+        response = client.post(
+            "/api/v1/auth/signup",
+            json={
+                "email": "user'; DROP TABLE users;--@x.com",
+                "username": "validuser",
+                "password": "password123",
+            },
+        )
+        assert response.status_code == 422
+
+    def test_signup_rejects_invalid_username_format(self, client):
+        """Username with non-allowed characters is rejected (422)."""
+        response = client.post(
+            "/api/v1/auth/signup",
+            json={
+                "email": "user@example.com",
+                "username": "user<script>alert(1)</script>",
+                "password": "password123",
+            },
+        )
+        assert response.status_code == 422
+
+    def test_login_rejects_short_password_without_verification(self, client):
+        """Password < 8 chars rejected by validation (422) before auth attempt."""
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"email": "a@b.com", "password": "short"},
+        )
+        assert response.status_code == 422
+
+    def test_get_user_returns_401_without_token(self, client):
+        """Protected endpoints require Bearer token."""
+        response = client.get(
+            "/api/v1/auth/users/550e8400-e29b-41d4-a716-446655440000"
+        )
+        assert response.status_code == 401
+
+    def test_stateless_chat_returns_401_without_token(self, client):
+        """Chat endpoint requires Bearer token."""
+        response = client.post(
+            "/api/v1/stateless_chat",
+            json={"messages": [{"role": "user", "content": "Hi"}]},
+        )
+        assert response.status_code == 401
+
+    def test_get_user_rejects_invalid_uuid_format(self, client_with_auth_bypass):
+        """Path validation runs before auth; invalid UUID returns 422."""
+        response = client_with_auth_bypass.get("/api/v1/auth/users/not-a-uuid")
+        assert response.status_code == 422
 
 
 @pytest.mark.unit

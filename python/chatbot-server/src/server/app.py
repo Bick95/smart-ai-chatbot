@@ -4,7 +4,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.requests import HTTPException as StarletteHTTPException
 
+from src.auth.factory import create_auth_adapter
+from src.utils.logging import get_logger
 from src.chatbot.prompts import (
     FilePromptSource,
     HttpPromptSource,
@@ -15,20 +18,32 @@ from src.chatbot.prompts import (
 from src.server.middleware import (
     RequestLoggingMiddleware,
     sanitized_exception_handler,
+    sanitized_http_exception_handler,
 )
+from src.server.routers.auth import router as auth_router
 from src.server.routers.stateless_chat import router as stateless_chat_router
 from src.settings import settings
 from src.utils.clients import create_clients
 
 
+logger = get_logger(__name__)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Create shared clients on startup; agent is created per request."""
+    logger.info("Server starting up")
+
+    logger.info("Creating LLM clients")
     clients = create_clients()
     app.state.clients = clients
 
-    # Optional: configure prompt handler with API source for live refresh
+    logger.info("Initializing auth adapter (%s)", settings.AUTH_PROVIDER.lower())
+    auth_adapter, auth_cleanup = await create_auth_adapter()
+    app.state.auth = auth_adapter
+
     if settings.PROMPT_API_URL:
+        logger.info("Configuring prompt handler with API source")
         prompt_handler = PromptHandler(
             sources=[
                 HttpPromptSource(
@@ -41,10 +56,19 @@ async def lifespan(app: FastAPI):
         set_prompt_handler(prompt_handler)
         prompt_handler.start_background_refresh()
 
+    logger.info("Startup successful")
+
     yield
 
-    # Stop prompt refresh if it was started
+    logger.info("Shutting down...")
+
     get_prompt_handler().stop_background_refresh()
+
+    if auth_cleanup is not None:
+        logger.info("Closing auth resources")
+        await auth_cleanup.close()
+
+    logger.info("Shutdown successful")
 
 
 def create_app() -> FastAPI:
@@ -58,7 +82,13 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if settings.ENABLE_DOCS else None,
     )
 
+    # Exception handlers (most specific wins; registration order does not matter):
+    # - HTTPException: sanitizes 5xx details, passes 4xx through as-is
+    # - Exception: catch-all for RuntimeError, DB errors, etc.; returns generic 500
     app.add_exception_handler(Exception, sanitized_exception_handler)
+    app.add_exception_handler(
+        StarletteHTTPException, sanitized_http_exception_handler
+    )
 
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(
@@ -69,6 +99,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.include_router(auth_router, prefix="/api/v1")
     app.include_router(stateless_chat_router, prefix="/api/v1")
 
     @app.get("/health")

@@ -56,6 +56,47 @@ class Settings(BaseSettings):
         description="Seconds between prompt API refreshes (min 60)",
     )
 
+    # Auth (hexagonal: postgres, supabase, or mock for tests)
+    AUTH_PROVIDER: str = Field(
+        default="postgres",
+        description="Auth adapter: 'postgres', 'supabase', or 'mock' (for tests)",
+    )
+    DATABASE_URL: SecretStr | None = Field(
+        default=None,
+        description="Postgres connection URL (required when AUTH_PROVIDER=postgres)",
+    )
+    SUPABASE_URL: str = Field(
+        default="",
+        description="Supabase project URL (required when AUTH_PROVIDER=supabase)",
+    )
+    SUPABASE_SERVICE_ROLE_KEY: SecretStr | None = Field(
+        default=None,
+        description="Supabase service_role key (required when AUTH_PROVIDER=supabase)",
+    )
+    SUPABASE_DATABASE_URL: SecretStr | None = Field(
+        default=None,
+        description="Supabase Postgres connection URL; when set, get_user_by_email uses "
+        "efficient direct query on auth.users instead of list_users",
+    )
+    JWT_SECRET_KEY: SecretStr | None = Field(
+        default=None,
+        description="Secret for signing JWTs (required)",
+    )
+    JWT_AUTH_TTL_SECONDS: int = Field(
+        default=900,
+        ge=60,
+        description="Auth JWT TTL in seconds (default 15 min)",
+    )
+    JWT_REFRESH_TTL_SECONDS: int = Field(
+        default=86400,
+        ge=3600,
+        description="Refresh JWT TTL in seconds (default 24 h)",
+    )
+    SIGNUP_INVITE_KEY: SecretStr | None = Field(
+        default=None,
+        description="When set, signup requires this key in the request; omit for open signup",
+    )
+
     # Secrets
     OPENAI_API_KEY: SecretStr
 

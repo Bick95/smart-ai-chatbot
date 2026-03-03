@@ -16,6 +16,10 @@ dependencies = [
     "langgraph>=1.0.8",
     "langchain>=1.2.10",
     "langchain-openai>=1.1.9",
+    "asyncpg>=0.30.0",
+    "argon2-cffi>=25.1.0",
+    "supabase>=2.10.0",
+    "pyjwt>=2.10.0",
 ]
 
 [dependency-groups]
