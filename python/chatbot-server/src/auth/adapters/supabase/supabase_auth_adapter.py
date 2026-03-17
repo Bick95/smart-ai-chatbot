@@ -219,3 +219,79 @@ class SupabaseAuthAdapter:
             )
 
         return await asyncio.to_thread(_verify)
+
+    async def search_users_by_username(
+        self, query: str, limit: int = 10
+    ) -> list[AuthUser]:
+        q = query.strip()
+        if not q:
+            return []
+        if self._database_pool is not None:
+            return await self._search_users_via_postgres(q, limit)
+        return await self._search_users_via_list_users(q, limit)
+
+    async def _search_users_via_postgres(
+        self, query: str, limit: int
+    ) -> list[AuthUser]:
+        """Search via direct Postgres query on auth.users."""
+        pool = self._database_pool
+        if pool is None:
+            raise RuntimeError(
+                "Supabase auth adapter: database pool is required for "
+                "search_users_by_username but is absent; set SUPABASE_DATABASE_URL"
+            )
+        pattern = f"%{query}%"
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT id, email, raw_user_meta_data, created_at
+                FROM auth.users
+                WHERE raw_user_meta_data->>'username' ILIKE $1
+                ORDER BY raw_user_meta_data->>'username'
+                LIMIT $2
+                """,
+                pattern,
+                limit,
+            )
+        result = []
+        for row in rows:
+            meta = row["raw_user_meta_data"] if "raw_user_meta_data" in row else {}
+            username = meta.get("username", "") if isinstance(meta, dict) else ""
+            created_at = _parse_created_at(row["created_at"] if "created_at" in row else None)
+            result.append(
+                AuthUser(
+                    id=str(row["id"]),
+                    email=row["email"] or "",
+                    username=username,
+                    created_at=created_at,
+                )
+            )
+        return result
+
+    async def _search_users_via_list_users(
+        self, query: str, limit: int
+    ) -> list[AuthUser]:
+        """Fallback: list_users then filter by username (inefficient)."""
+
+        def _search() -> list[AuthUser]:
+            q_lower = query.lower()
+            response = self._client.auth.admin.list_users()
+            users = getattr(response, "users", []) or []
+            matches = []
+            for u in users:
+                u_meta = getattr(u, "user_metadata", {}) or {}
+                u_username = u_meta.get("username", "") if isinstance(u_meta, dict) else ""
+                if q_lower in u_username.lower():
+                    created_at = _parse_created_at(getattr(u, "created_at", None))
+                    matches.append(
+                        AuthUser(
+                            id=str(u.id),
+                            email=getattr(u, "email", "") or "",
+                            username=u_username,
+                            created_at=created_at,
+                        )
+                    )
+            matches.sort(key=lambda x: x.username)
+            return matches[:limit]
+
+        return await asyncio.to_thread(_search)

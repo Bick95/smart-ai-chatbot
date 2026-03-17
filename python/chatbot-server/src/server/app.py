@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.requests import HTTPException as StarletteHTTPException
 
+from src.app_data.factory import create_chat_adapter
 from src.auth.factory import create_auth_adapter
 from src.utils.logging import get_logger
 from src.chatbot.prompts import (
@@ -21,6 +22,11 @@ from src.server.middleware import (
     sanitized_http_exception_handler,
 )
 from src.server.routers.auth import router as auth_router
+from src.server.routers.stateful_chat import (
+    folders_router,
+    router as stateful_chat_router,
+    users_router,
+)
 from src.server.routers.stateless_chat import router as stateless_chat_router
 from src.settings import settings
 from src.utils.clients import create_clients
@@ -39,8 +45,12 @@ async def lifespan(app: FastAPI):
     app.state.clients = clients
 
     logger.info("Initializing auth adapter (%s)", settings.AUTH_PROVIDER.lower())
-    auth_adapter, auth_cleanup = await create_auth_adapter()
+    auth_adapter, auth_pool = await create_auth_adapter()
     app.state.auth = auth_adapter
+
+    logger.info("Initializing app data adapter (%s)", settings.APP_DATA_PROVIDER.lower())
+    chat_adapter, chat_cleanup = await create_chat_adapter(existing_pool=auth_pool)
+    app.state.chat = chat_adapter
 
     if settings.PROMPT_API_URL:
         logger.info("Configuring prompt handler with API source")
@@ -64,9 +74,13 @@ async def lifespan(app: FastAPI):
 
     get_prompt_handler().stop_background_refresh()
 
-    if auth_cleanup is not None:
+    if chat_cleanup is not None:
+        logger.info("Closing app data resources")
+        await chat_cleanup.close()
+
+    if auth_pool is not None:
         logger.info("Closing auth resources")
-        await auth_cleanup.close()
+        await auth_pool.close()
 
     logger.info("Shutdown successful")
 
@@ -101,6 +115,9 @@ def create_app() -> FastAPI:
 
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(stateless_chat_router, prefix="/api/v1")
+    app.include_router(stateful_chat_router, prefix="/api/v1")
+    app.include_router(folders_router, prefix="/api/v1")
+    app.include_router(users_router, prefix="/api/v1")
 
     @app.get("/health")
     def health() -> dict[str, str]:

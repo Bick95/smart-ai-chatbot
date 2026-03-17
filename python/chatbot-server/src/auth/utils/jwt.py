@@ -6,9 +6,9 @@ import time
 from enum import Enum
 
 import jwt
-from pydantic import BaseModel, ConfigDict, ValidationError, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
 
-from src.auth.utils.validation import is_valid_uuid4
+from src.utils.validation import Uuid4Str
 from src.settings import settings
 from src.utils.logging import get_logger
 
@@ -51,7 +51,7 @@ class SubjectPayload(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     subject_type: SubjectType
-    subject_id: str
+    subject_id: Uuid4Str
 
     @model_validator(mode="before")
     @classmethod
@@ -64,13 +64,6 @@ class SubjectPayload(BaseModel):
         if subject_type is None or subject_id is None:
             raise ValueError("subject_type and subject_id are required")
         return {"subject_type": subject_type, "subject_id": str(subject_id)}
-
-    @field_validator("subject_id")
-    @classmethod
-    def subject_id_must_be_uuid4(cls, v: str) -> str:
-        if not is_valid_uuid4(v):
-            raise ValueError(f"subject_id must be UUID-v4, got {v!r}")
-        return v
 
 
 def create_auth_token(subject: SubjectPayload) -> str:

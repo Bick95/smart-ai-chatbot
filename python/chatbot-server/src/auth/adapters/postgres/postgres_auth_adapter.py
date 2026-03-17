@@ -129,3 +129,24 @@ class PostgresAuthAdapter:
         if not verify_password(password, row["password_hash"]):
             return None
         return _row_to_user(row)
+
+    async def search_users_by_username(
+        self, query: str, limit: int = 10
+    ) -> list[AuthUser]:
+        q = query.strip()
+        if not q:
+            return []
+        pattern = f"%{q}%"
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT id, email, username, created_at
+                FROM auth_users
+                WHERE username ILIKE $1
+                ORDER BY username
+                LIMIT $2
+                """,
+                pattern,
+                limit,
+            )
+        return [_row_to_user(r) for r in rows]

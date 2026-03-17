@@ -97,6 +97,16 @@ class Settings(BaseSettings):
         description="When set, signup requires this key in the request; omit for open signup",
     )
 
+    # App data (chats, folders, etc.; hexagonal: postgres or mock)
+    APP_DATA_PROVIDER: str = Field(
+        default="postgres",
+        description="App data adapter: 'postgres' or 'mock' (for tests)",
+    )
+    APP_DATA_DATABASE_URL: SecretStr | None = Field(
+        default=None,
+        description="Postgres URL for app data; used when AUTH_PROVIDER=mock but app data uses Postgres",
+    )
+
     # Secrets
     OPENAI_API_KEY: SecretStr
 

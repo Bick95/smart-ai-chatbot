@@ -103,6 +103,20 @@ class MockAuthAdapter:
             return None
         return user
 
+    async def search_users_by_username(
+        self, query: str, limit: int = 10
+    ) -> list[AuthUser]:
+        q = query.strip().lower()
+        if not q:
+            return []
+        matches = [
+            u.user
+            for u in self._users.values()
+            if q in u.user.username.lower()
+        ]
+        matches.sort(key=lambda u: u.username)
+        return matches[:limit]
+
 
 class _StoredUser:
     def __init__(self, user: AuthUser, password_hash: str) -> None:

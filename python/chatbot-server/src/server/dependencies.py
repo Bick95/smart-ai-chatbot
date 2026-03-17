@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from langgraph.graph.state import CompiledStateGraph
 
+from src.app_data.ports.chat_port import ChatPort
 from src.auth.ports.auth_port import AuthPort
 from src.auth.utils.jwt import SubjectPayload, verify_auth_token
 from src.chatbot.graph import get_agent
@@ -31,6 +32,11 @@ def get_agent_graph(
 def get_auth(request: Request) -> AuthPort:
     """Retrieve the auth adapter from app state."""
     return request.app.state.auth
+
+
+def get_chat_port(request: Request) -> ChatPort:
+    """Retrieve the chat adapter from app state."""
+    return request.app.state.chat
 
 
 def get_current_subject(

@@ -54,3 +54,9 @@ class AuthPort(Protocol):
     async def verify_credentials(self, email: str, password: str) -> AuthUser | None:
         """Verify email and password. Returns user if valid, None otherwise."""
         ...
+
+    async def search_users_by_username(
+        self, query: str, limit: int = 10
+    ) -> list[AuthUser]:
+        """Search users by username (prefix/contains). For sharing UI typeahead."""
+        ...
