@@ -223,8 +223,7 @@ class TestStatefulChatEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert "id" in data
-        assert data["owner_subject_type"] == "user"
-        assert data["owner_subject_id"] == "550e8400-e29b-41d4-a716-446655440000"
+        assert data["owner_subject"] == "user:550e8400-e29b-41d4-a716-446655440000"
 
     def test_rename_and_move_chat(self, client_with_auth_bypass):
         """Rename chat and move to folder."""
@@ -333,16 +332,14 @@ class TestStatefulChatEndpoints:
             json={"subject_type": "user", "subject_id": grantee_id, "role": "viewer"},
         )
         assert r2.status_code == 200
-        assert r2.json()["subject_type"] == "user"
-        assert r2.json()["subject_id"] == grantee_id
+        assert r2.json()["subject"] == f"user:{grantee_id}"
         assert r2.json()["role"] == "viewer"
         # List shares
         r3 = client_with_auth_bypass.get(f"/api/v1/chats/{chat_id}/shares")
         assert r3.status_code == 200
         shares = r3.json()
         assert len(shares) == 1
-        assert shares[0]["subject_type"] == "user"
-        assert shares[0]["subject_id"] == grantee_id
+        assert shares[0]["subject"] == f"user:{grantee_id}"
         # Remove share (new path: /chats/{id}/shares/{subject_type}/{subject_id})
         r4 = client_with_auth_bypass.delete(
             f"/api/v1/chats/{chat_id}/shares/user/{grantee_id}"

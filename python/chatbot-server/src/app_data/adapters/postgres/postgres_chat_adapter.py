@@ -65,12 +65,8 @@ async def _conn_with_subject(
     async with pool.acquire() as conn:
         async with conn.transaction():
             await conn.execute(
-                "SET LOCAL app.current_subject_type = $1",
-                subject.subject_type,
-            )
-            await conn.execute(
-                "SET LOCAL app.current_subject_id = $1",
-                subject.subject_id,
+                "SET LOCAL app.current_subject = $1",
+                subject.to_str(),
             )
             yield conn
 
@@ -91,12 +87,11 @@ class PostgresChatAdapter:
         async with _conn_with_subject(self._pool, subject) as conn:
             row = await conn.fetchrow(
                 """
-                INSERT INTO chats (owner_subject_type, owner_subject_id, folder_id, title)
-                VALUES ($1, $2, $3, $4)
-                RETURNING id, owner_subject_type, owner_subject_id, folder_id, title, created_at, updated_at
+                INSERT INTO chats (owner_subject, folder_id, title)
+                VALUES ($1, $2, $3)
+                RETURNING id, owner_subject, folder_id, title, created_at, updated_at
                 """,
-                subject.subject_type,
-                UUID(subject.subject_id),
+                subject.to_str(),
                 UUID(folder_id) if folder_id else None,
                 title.strip() if title else None,
             )
@@ -106,7 +101,7 @@ class PostgresChatAdapter:
         async with _conn_with_subject(self._pool, subject) as conn:
             row = await conn.fetchrow(
                 """
-                SELECT id, owner_subject_type, owner_subject_id, folder_id, title, created_at, updated_at
+                SELECT id, owner_subject, folder_id, title, created_at, updated_at
                 FROM chats
                 WHERE id = $1
                 """,
@@ -131,7 +126,7 @@ class PostgresChatAdapter:
                 if folder_id is not None:
                     rows = await conn.fetch(
                         """
-                        SELECT id, owner_subject_type, owner_subject_id, folder_id, title, created_at, updated_at
+                        SELECT id, owner_subject, folder_id, title, created_at, updated_at
                         FROM chats
                         WHERE folder_id = $1
                         AND (updated_at, id) < ($2, $3)
@@ -146,7 +141,7 @@ class PostgresChatAdapter:
                 else:
                     rows = await conn.fetch(
                         """
-                        SELECT id, owner_subject_type, owner_subject_id, folder_id, title, created_at, updated_at
+                        SELECT id, owner_subject, folder_id, title, created_at, updated_at
                         FROM chats
                         WHERE (updated_at, id) < ($1, $2)
                         ORDER BY updated_at DESC, id DESC
@@ -160,7 +155,7 @@ class PostgresChatAdapter:
                 if folder_id is not None:
                     rows = await conn.fetch(
                         """
-                        SELECT id, owner_subject_type, owner_subject_id, folder_id, title, created_at, updated_at
+                        SELECT id, owner_subject, folder_id, title, created_at, updated_at
                         FROM chats
                         WHERE folder_id = $1
                         ORDER BY updated_at DESC, id DESC
@@ -172,7 +167,7 @@ class PostgresChatAdapter:
                 else:
                     rows = await conn.fetch(
                         """
-                        SELECT id, owner_subject_type, owner_subject_id, folder_id, title, created_at, updated_at
+                        SELECT id, owner_subject, folder_id, title, created_at, updated_at
                         FROM chats
                         ORDER BY updated_at DESC, id DESC
                         LIMIT $1
@@ -287,7 +282,7 @@ class PostgresChatAdapter:
                 UPDATE chats
                 SET {", ".join(sets)}
                 WHERE id = ${n}
-                RETURNING id, owner_subject_type, owner_subject_id, folder_id, title, created_at, updated_at
+                RETURNING id, owner_subject, folder_id, title, created_at, updated_at
                 """,
                 *args,
             )
@@ -309,13 +304,12 @@ class PostgresChatAdapter:
         async with _conn_with_subject(self._pool, owner) as conn:
             row = await conn.fetchrow(
                 """
-                INSERT INTO chat_permissions (chat_id, subject_type, subject_id, role)
-                VALUES ($1, $2, $3, $4)
-                RETURNING chat_id, subject_type, subject_id, role, created_at
+                INSERT INTO chat_permissions (chat_id, subject, role)
+                VALUES ($1, $2, $3)
+                RETURNING chat_id, subject, role, created_at
                 """,
                 UUID(chat_id),
-                grantee.subject_type,
-                UUID(grantee.subject_id),
+                grantee.to_str(),
                 role,
             )
         return _row_to_share(row)
@@ -327,11 +321,10 @@ class PostgresChatAdapter:
             result = await conn.execute(
                 """
                 DELETE FROM chat_permissions
-                WHERE chat_id = $1 AND subject_type = $2 AND subject_id = $3
+                WHERE chat_id = $1 AND subject = $2
                 """,
                 UUID(chat_id),
-                grantee.subject_type,
-                UUID(grantee.subject_id),
+                grantee.to_str(),
             )
         return result == "DELETE 1"
 
@@ -339,7 +332,7 @@ class PostgresChatAdapter:
         async with _conn_with_subject(self._pool, owner) as conn:
             rows = await conn.fetch(
                 """
-                SELECT chat_id, subject_type, subject_id, role, created_at
+                SELECT chat_id, subject, role, created_at
                 FROM chat_permissions
                 WHERE chat_id = $1
                 """,
@@ -353,7 +346,7 @@ class PostgresChatAdapter:
         async with _conn_with_subject(self._pool, subject) as conn:
             row = await conn.fetchrow(
                 """
-                SELECT id, owner_subject_type, owner_subject_id, parent_id, name, system_prompt, created_at, updated_at
+                SELECT id, owner_subject, parent_id, name, system_prompt, created_at, updated_at
                 FROM chat_folders
                 WHERE id = $1
                 """,
@@ -370,7 +363,7 @@ class PostgresChatAdapter:
             if parent_id is not None:
                 rows = await conn.fetch(
                     """
-                    SELECT id, owner_subject_type, owner_subject_id, parent_id, name, system_prompt, created_at, updated_at
+                    SELECT id, owner_subject, parent_id, name, system_prompt, created_at, updated_at
                     FROM chat_folders
                     WHERE parent_id = $1
                     ORDER BY name
@@ -380,7 +373,7 @@ class PostgresChatAdapter:
             else:
                 rows = await conn.fetch(
                     """
-                    SELECT id, owner_subject_type, owner_subject_id, parent_id, name, system_prompt, created_at, updated_at
+                    SELECT id, owner_subject, parent_id, name, system_prompt, created_at, updated_at
                     FROM chat_folders
                     WHERE parent_id IS NULL
                     ORDER BY name
@@ -399,12 +392,11 @@ class PostgresChatAdapter:
         async with _conn_with_subject(self._pool, subject) as conn:
             row = await conn.fetchrow(
                 """
-                INSERT INTO chat_folders (owner_subject_type, owner_subject_id, parent_id, name, system_prompt)
-                VALUES ($1, $2, $3, $4, $5)
-                RETURNING id, owner_subject_type, owner_subject_id, parent_id, name, system_prompt, created_at, updated_at
+                INSERT INTO chat_folders (owner_subject, parent_id, name, system_prompt)
+                VALUES ($1, $2, $3, $4)
+                RETURNING id, owner_subject, parent_id, name, system_prompt, created_at, updated_at
                 """,
-                subject.subject_type,
-                UUID(subject.subject_id),
+                subject.to_str(),
                 UUID(parent_id) if parent_id else None,
                 name.strip(),
                 system_prompt.strip() if system_prompt else None,
@@ -420,7 +412,7 @@ class PostgresChatAdapter:
                 UPDATE chat_folders
                 SET name = $1, updated_at = NOW()
                 WHERE id = $2
-                RETURNING id, owner_subject_type, owner_subject_id, parent_id, name, created_at, updated_at
+                RETURNING id, owner_subject, parent_id, name, system_prompt, created_at, updated_at
                 """,
                 name.strip(),
                 UUID(folder_id),
@@ -460,7 +452,7 @@ class PostgresChatAdapter:
                 UPDATE chat_folders
                 SET parent_id = $1, updated_at = NOW()
                 WHERE id = $2
-                RETURNING id, owner_subject_type, owner_subject_id, parent_id, name, system_prompt, created_at, updated_at
+                RETURNING id, owner_subject, parent_id, name, system_prompt, created_at, updated_at
                 """,
                 parent_uuid if parent_id else None,
                 folder_uuid,
@@ -496,8 +488,7 @@ class PostgresChatAdapter:
 def _row_to_chat(row: asyncpg.Record) -> Chat:
     return Chat(
         id=str(row["id"]),
-        owner_subject_type=row["owner_subject_type"],
-        owner_subject_id=str(row["owner_subject_id"]),
+        owner_subject=row["owner_subject"],
         folder_id=str(row["folder_id"]) if row["folder_id"] else None,
         title=row["title"] if row.get("title") else None,
         created_at=_parse_ts(row["created_at"]),
@@ -518,8 +509,7 @@ def _row_to_message(row: asyncpg.Record) -> ChatMessage:
 def _row_to_share(row: asyncpg.Record) -> ChatShare:
     return ChatShare(
         chat_id=str(row["chat_id"]),
-        subject_type=row["subject_type"],
-        subject_id=str(row["subject_id"]),
+        subject=row["subject"],
         role=row["role"],
         created_at=_parse_ts(row["created_at"]),
     )
@@ -528,8 +518,7 @@ def _row_to_share(row: asyncpg.Record) -> ChatShare:
 def _row_to_folder(row: asyncpg.Record) -> Folder:
     return Folder(
         id=str(row["id"]),
-        owner_subject_type=row["owner_subject_type"],
-        owner_subject_id=str(row["owner_subject_id"]),
+        owner_subject=row["owner_subject"],
         parent_id=str(row["parent_id"]) if row["parent_id"] else None,
         name=row["name"],
         system_prompt=row.get("system_prompt"),

@@ -93,8 +93,10 @@ class ChatResponseItem(BaseModel):
     """Chat in list/get response."""
 
     id: Uuid4Str
-    owner_subject_type: SubjectType
-    owner_subject_id: Uuid4Str
+    owner_subject: str = Field(
+        ...,
+        description="Owner as 'type:id' (e.g. user:550e8400-e29b-41d4-a716-446655440000)",
+    )
     folder_id: Optional[Uuid4Str]
     title: str | None
     created_at: str
@@ -162,8 +164,10 @@ class ShareResponseItem(BaseModel):
     """Share in list response."""
 
     chat_id: Uuid4Str
-    subject_type: SubjectType
-    subject_id: Uuid4Str
+    subject: str = Field(
+        ...,
+        description="Grantee as 'type:id' (e.g. user:550e8400-e29b-41d4-a716-446655440000)",
+    )
     role: ShareRole
     created_at: str
 
@@ -198,8 +202,10 @@ class FolderResponseItem(BaseModel):
     """Folder in list response."""
 
     id: str
-    owner_subject_type: SubjectType
-    owner_subject_id: str
+    owner_subject: str = Field(
+        ...,
+        description="Owner as 'type:id' (e.g. user:550e8400-e29b-41d4-a716-446655440000)",
+    )
     parent_id: str | None
     name: str
     system_prompt: str | None = None

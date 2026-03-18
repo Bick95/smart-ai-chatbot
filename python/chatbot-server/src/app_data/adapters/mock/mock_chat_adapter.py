@@ -27,7 +27,7 @@ class MockChatAdapter:
     def __init__(self) -> None:
         self._chats: dict[str, Chat] = {}
         self._messages: dict[str, list[ChatMessage]] = {}  # chat_id -> messages
-        self._permissions: dict[tuple[str, str, str], ChatShare] = {}  # (chat_id, subject_type, subject_id)
+        self._permissions: dict[tuple[str, str], ChatShare] = {}  # (chat_id, subject)
         self._folders: dict[str, Folder] = {}
 
     def _has_access(
@@ -36,9 +36,9 @@ class MockChatAdapter:
         chat = self._chats.get(chat_id)
         if chat is None:
             return False
-        if chat.owner_subject_type == subject.subject_type and chat.owner_subject_id == subject.subject_id:
+        if chat.owner_subject == subject.to_str():
             return True
-        key = (chat_id, subject.subject_type, subject.subject_id)
+        key = (chat_id, subject.to_str())
         share = self._permissions.get(key)
         if share is None:
             return False
@@ -57,8 +57,7 @@ class MockChatAdapter:
         now = _now()
         chat = Chat(
             id=chat_id,
-            owner_subject_type=subject.subject_type,
-            owner_subject_id=subject.subject_id,
+            owner_subject=subject.to_str(),
             folder_id=folder_id,
             title=title.strip() if title else None,
             created_at=now,
@@ -125,8 +124,7 @@ class MockChatAdapter:
         self._messages[chat_id].append(msg)
         self._chats[chat_id] = Chat(
             id=chat.id,
-            owner_subject_type=chat.owner_subject_type,
-            owner_subject_id=chat.owner_subject_id,
+            owner_subject=chat.owner_subject,
             folder_id=chat.folder_id,
             title=chat.title,
             created_at=chat.created_at,
@@ -172,7 +170,7 @@ class MockChatAdapter:
         update_folder: bool = False,
     ) -> Chat | None:
         chat = self._chats.get(chat_id)
-        if chat is None or chat.owner_subject_type != subject.subject_type or chat.owner_subject_id != subject.subject_id:
+        if chat is None or chat.owner_subject != subject.to_str():
             return None
         if not update_title and not update_folder:
             return chat
@@ -181,8 +179,7 @@ class MockChatAdapter:
         new_folder_id = folder_id if update_folder else chat.folder_id
         updated = Chat(
             id=chat.id,
-            owner_subject_type=chat.owner_subject_type,
-            owner_subject_id=chat.owner_subject_id,
+            owner_subject=chat.owner_subject,
             folder_id=new_folder_id,
             title=new_title,
             created_at=chat.created_at,
@@ -193,39 +190,39 @@ class MockChatAdapter:
 
     async def delete_chat(self, chat_id: str, subject: Subject) -> bool:
         chat = self._chats.get(chat_id)
-        if chat is None or chat.owner_subject_type != subject.subject_type or chat.owner_subject_id != subject.subject_id:
+        if chat is None or chat.owner_subject != subject.to_str():
             return False
         del self._chats[chat_id]
         self._messages.pop(chat_id, None)
-        for (cid, st, sid) in list(self._permissions.keys()):
+        for (cid, subj) in list(self._permissions.keys()):
             if cid == chat_id:
-                del self._permissions[(cid, st, sid)]
+                del self._permissions[(cid, subj)]
         return True
 
     async def add_share(
-        self, chat_id: str, owner: Subject, grantee: Subject, role: str
+        self, chat_id: str, owner: Subject, grantee: Subject, role: ShareRole
     ) -> ChatShare:
         chat = self._chats.get(chat_id)
-        if chat is None or chat.owner_subject_type != owner.subject_type or chat.owner_subject_id != owner.subject_id:
+        if chat is None or chat.owner_subject != owner.to_str():
             raise PermissionError("Not owner")
         now = _now()
+        grantee_str = grantee.to_str()
         share = ChatShare(
             chat_id=chat_id,
-            subject_type=grantee.subject_type,
-            subject_id=grantee.subject_id,
+            subject=grantee_str,
             role=role,
             created_at=now,
         )
-        self._permissions[(chat_id, grantee.subject_type, grantee.subject_id)] = share
+        self._permissions[(chat_id, grantee_str)] = share
         return share
 
     async def remove_share(
         self, chat_id: str, owner: Subject, grantee: Subject
     ) -> bool:
         chat = self._chats.get(chat_id)
-        if chat is None or chat.owner_subject_type != owner.subject_type or chat.owner_subject_id != owner.subject_id:
+        if chat is None or chat.owner_subject != owner.to_str():
             return False
-        key = (chat_id, grantee.subject_type, grantee.subject_id)
+        key = (chat_id, grantee.to_str())
         if key in self._permissions:
             del self._permissions[key]
             return True
@@ -233,10 +230,10 @@ class MockChatAdapter:
 
     async def list_shares(self, chat_id: str, owner: Subject) -> list[ChatShare]:
         chat = self._chats.get(chat_id)
-        if chat is None or chat.owner_subject_type != owner.subject_type or chat.owner_subject_id != owner.subject_id:
+        if chat is None or chat.owner_subject != owner.to_str():
             return []
         return [
-            s for (cid, _, _), s in self._permissions.items()
+            s for (cid, _), s in self._permissions.items()
             if cid == chat_id
         ]
 
@@ -246,7 +243,7 @@ class MockChatAdapter:
         folder = self._folders.get(folder_id)
         if folder is None:
             return None
-        if folder.owner_subject_type != subject.subject_type or folder.owner_subject_id != subject.subject_id:
+        if folder.owner_subject != subject.to_str():
             return None
         if not self._has_folder_access(folder_id, subject):
             return None
@@ -257,7 +254,7 @@ class MockChatAdapter:
         folder = self._folders.get(folder_id)
         if folder is None:
             return False
-        if folder.owner_subject_type == subject.subject_type and folder.owner_subject_id == subject.subject_id:
+        if folder.owner_subject == subject.to_str():
             return True
         for chat in self._chats.values():
             if chat.folder_id == folder_id and self._has_access(chat.id, subject):
@@ -285,8 +282,7 @@ class MockChatAdapter:
         now = _now()
         folder = Folder(
             id=folder_id,
-            owner_subject_type=subject.subject_type,
-            owner_subject_id=subject.subject_id,
+            owner_subject=subject.to_str(),
             parent_id=parent_id,
             name=name.strip(),
             system_prompt=system_prompt.strip() if system_prompt else None,
@@ -300,13 +296,12 @@ class MockChatAdapter:
         self, folder_id: str, subject: Subject, name: str
     ) -> Folder | None:
         folder = self._folders.get(folder_id)
-        if folder is None or folder.owner_subject_type != subject.subject_type or folder.owner_subject_id != subject.subject_id:
+        if folder is None or folder.owner_subject != subject.to_str():
             return None
         now = _now()
         updated = Folder(
             id=folder.id,
-            owner_subject_type=folder.owner_subject_type,
-            owner_subject_id=folder.owner_subject_id,
+            owner_subject=folder.owner_subject,
             parent_id=folder.parent_id,
             name=name.strip(),
             system_prompt=folder.system_prompt,
@@ -329,7 +324,7 @@ class MockChatAdapter:
         self, folder_id: str, subject: Subject, parent_id: str | None
     ) -> Folder | None:
         folder = self._folders.get(folder_id)
-        if folder is None or folder.owner_subject_type != subject.subject_type or folder.owner_subject_id != subject.subject_id:
+        if folder is None or folder.owner_subject != subject.to_str():
             return None
         if parent_id is not None:
             if parent_id == folder_id:
@@ -339,8 +334,7 @@ class MockChatAdapter:
         now = _now()
         updated = Folder(
             id=folder.id,
-            owner_subject_type=folder.owner_subject_type,
-            owner_subject_id=folder.owner_subject_id,
+            owner_subject=folder.owner_subject,
             parent_id=parent_id,
             name=folder.name,
             system_prompt=folder.system_prompt,
@@ -352,15 +346,14 @@ class MockChatAdapter:
 
     async def delete_folder(self, folder_id: str, subject: Subject) -> bool:
         folder = self._folders.get(folder_id)
-        if folder is None or folder.owner_subject_type != subject.subject_type or folder.owner_subject_id != subject.subject_id:
+        if folder is None or folder.owner_subject != subject.to_str():
             return False
         del self._folders[folder_id]
         for chat in self._chats.values():
             if chat.folder_id == folder_id:
                 self._chats[chat.id] = Chat(
                     id=chat.id,
-                    owner_subject_type=chat.owner_subject_type,
-                    owner_subject_id=chat.owner_subject_id,
+                    owner_subject=chat.owner_subject,
                     folder_id=None,
                     title=chat.title,
                     created_at=chat.created_at,
@@ -370,10 +363,10 @@ class MockChatAdapter:
             if f.parent_id == folder_id:
                 self._folders[fid] = Folder(
                     id=f.id,
-                    owner_subject_type=f.owner_subject_type,
-                    owner_subject_id=f.owner_subject_id,
+                    owner_subject=f.owner_subject,
                     parent_id=folder.parent_id,
                     name=f.name,
+                    system_prompt=f.system_prompt,
                     created_at=f.created_at,
                     updated_at=_now(),
                 )
@@ -383,12 +376,11 @@ class MockChatAdapter:
         self, chat_id: str, subject: Subject, folder_id: str | None
     ) -> bool:
         chat = self._chats.get(chat_id)
-        if chat is None or chat.owner_subject_type != subject.subject_type or chat.owner_subject_id != subject.subject_id:
+        if chat is None or chat.owner_subject != subject.to_str():
             return False
         self._chats[chat_id] = Chat(
             id=chat.id,
-            owner_subject_type=chat.owner_subject_type,
-            owner_subject_id=chat.owner_subject_id,
+            owner_subject=chat.owner_subject,
             folder_id=folder_id,
             title=chat.title,
             created_at=chat.created_at,

@@ -9,7 +9,14 @@ from langchain_core.messages import AIMessage, AnyMessage
 from langgraph.graph.state import CompiledStateGraph
 
 from src.app_data.ports.chat_port import ChatPort
-from src.app_data.ports.types import Chat, ChatMessage, Folder, MessageRole, Subject
+from src.app_data.ports.types import (
+    Chat,
+    ChatMessage,
+    Folder,
+    MessageRole,
+    Subject,
+    SubjectType,
+)
 from src.auth.ports.auth_port import AuthPort
 from src.auth.utils.jwt import SubjectPayload
 from src.chatbot.prompts import get_prompt_handler
@@ -49,7 +56,7 @@ router = APIRouter(prefix="/chats", tags=["chats"])
 def _subject_from_payload(payload: SubjectPayload) -> Subject:
     """Convert SubjectPayload to Subject for app_data layer."""
     return Subject(
-        subject_type=payload.subject_type.value,
+        subject_type=SubjectType(payload.subject_type.value),
         subject_id=payload.subject_id,
     )
 
@@ -57,8 +64,7 @@ def _subject_from_payload(payload: SubjectPayload) -> Subject:
 def _chat_to_response(chat: Chat) -> ChatResponseItem:
     return ChatResponseItem(
         id=chat.id,
-        owner_subject_type=chat.owner_subject_type,
-        owner_subject_id=chat.owner_subject_id,
+        owner_subject=chat.owner_subject,
         folder_id=chat.folder_id,
         title=chat.title,
         created_at=chat.created_at.isoformat(),
@@ -79,8 +85,7 @@ def _message_to_response(msg) -> ChatMessageResponseItem:
 def _folder_to_response(folder: Folder) -> FolderResponseItem:
     return FolderResponseItem(
         id=folder.id,
-        owner_subject_type=folder.owner_subject_type,
-        owner_subject_id=folder.owner_subject_id,
+        owner_subject=folder.owner_subject,
         parent_id=folder.parent_id,
         name=folder.name,
         system_prompt=folder.system_prompt,
@@ -292,14 +297,13 @@ async def list_shares(
     c = await chat_port.get_chat(chat_id, subj)
     if c is None:
         raise HTTPException(status_code=404, detail="Chat not found")
-    if c.owner_subject_type != subj.subject_type or c.owner_subject_id != subj.subject_id:
+    if c.owner_subject != subj.to_str():
         raise HTTPException(status_code=403, detail="Only the owner can list shares")
     shares = await chat_port.list_shares(chat_id, subj)
     return [
         ShareResponseItem(
             chat_id=s.chat_id,
-            subject_type=s.subject_type,
-            subject_id=s.subject_id,
+            subject=s.subject,
             role=s.role,
             created_at=s.created_at.isoformat(),
         )
@@ -321,8 +325,7 @@ async def add_share(
         share = await chat_port.add_share(chat_id, owner, grantee, body.role)
         return ShareResponseItem(
             chat_id=share.chat_id,
-            subject_type=share.subject_type,
-            subject_id=share.subject_id,
+            subject=share.subject,
             role=share.role,
             created_at=share.created_at.isoformat(),
         )
@@ -340,7 +343,7 @@ async def remove_share(
 ) -> None:
     """Remove share (owner only)."""
     owner = _subject_from_payload(subject)
-    grantee = Subject(subject_type=subject_type, subject_id=subject_id)
+    grantee = Subject(subject_type=SubjectType(subject_type), subject_id=subject_id)
     ok = await chat_port.remove_share(chat_id, owner, grantee)
     if not ok:
         raise HTTPException(status_code=404, detail="Share not found")
