@@ -421,6 +421,42 @@ class PostgresChatAdapter:
             return None
         return _row_to_folder(row)
 
+    async def update_folder(
+        self, folder_id: str, subject: Subject, **kwargs: str | None
+    ) -> Folder | None:
+        if not kwargs:
+            return await self.get_folder(folder_id, subject)
+        updates = []
+        values = []
+        idx = 1
+        if "name" in kwargs:
+            updates.append(f"name = ${idx}")
+            values.append(kwargs["name"].strip() if kwargs["name"] else None)
+            idx += 1
+        if "system_prompt" in kwargs:
+            updates.append(f"system_prompt = ${idx}")
+            values.append(
+                kwargs["system_prompt"].strip()
+                if kwargs["system_prompt"]
+                else None
+            )
+            idx += 1
+        if not updates:
+            return await self.get_folder(folder_id, subject)
+        updates.append("updated_at = NOW()")
+        values.append(UUID(folder_id))
+        query = f"""
+            UPDATE chat_folders
+            SET {", ".join(updates)}
+            WHERE id = ${idx}
+            RETURNING id, owner_subject, parent_id, name, system_prompt, created_at, updated_at
+        """
+        async with _conn_with_subject(self._pool, subject) as conn:
+            row = await conn.fetchrow(query, *values)
+        if row is None:
+            return None
+        return _row_to_folder(row)
+
     async def move_folder_to_parent(
         self, folder_id: str, subject: Subject, parent_id: str | None
     ) -> Folder | None:

@@ -4,46 +4,53 @@ import { useCallback, useEffect, useRef } from "react";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ItemGroup } from "@/components/ui/item";
-import { useChatStore } from "@/stores/chat";
+import type { Message } from "@/stores/chat";
 import { ChatError } from "./ChatError";
 import { ChatInput } from "./ChatInput";
 import { ChatMessage } from "./ChatMessage";
 
 export interface ChatUIProps {
+    /** Messages to display (user + assistant). */
+    messages: Message[];
     /**
      * Called with the latest user message content.
-     * Responsible for adding the user message, fetching the assistant reply, and adding it to the store.
+     * Responsible for adding the user message, fetching the assistant reply, and adding it.
      */
-    onSendMessage?: (latestUserMessage: string) => Promise<void>;
+    onSendMessage: (latestUserMessage: string) => Promise<void>;
+    /** Whether an assistant response is being generated. */
+    isLoading?: boolean;
     /** Error to show inline (not in message history). */
     error?: { message: string } | null;
     /** Called when user clicks Resubmit on the error. */
     onRetry?: () => void;
     /** True while a retry is in progress. */
     isRetrying?: boolean;
+    /** Called on mount if no messages; use to ensure a chat exists (e.g. temporary chat). */
+    createChatIfNeeded?: () => void;
+    /** If provided and has cursor, shows "Load older" at top for pagination. */
+    onLoadOlder?: () => void;
+    /** Cursor for loading older messages; when set, onLoadOlder can fetch more. */
+    hasOlderMessages?: boolean;
 }
 
 export function ChatUI({
+    messages,
     onSendMessage,
+    isLoading = false,
     error,
     onRetry,
     isRetrying = false,
+    createChatIfNeeded,
+    onLoadOlder,
+    hasOlderMessages,
 }: ChatUIProps) {
     const viewportRef = useRef<HTMLDivElement>(null);
-    const createChat = useChatStore((s) => s.createChat);
-    const setLoading = useChatStore((s) => s.setLoading);
-    const getCurrentChat = useChatStore((s) => s.getCurrentChat);
-    const isLoading = useChatStore((s) => s.isLoading);
 
-    const currentChat = getCurrentChat();
-    const messages = currentChat?.messages ?? [];
-
-    // Ensure we always have a current chat for single-chat UI
     useEffect(() => {
-        if (!currentChat) {
-            createChat(true);
+        if (createChatIfNeeded && messages.length === 0 && !isLoading && !error) {
+            createChatIfNeeded();
         }
-    }, [currentChat, createChat]);
+    }, [createChatIfNeeded, messages.length, isLoading, error]);
 
     // Scroll to bottom whenever content at the bottom changes: new messages,
     // loading indicator appears/disappears, or error state.
@@ -58,17 +65,10 @@ export function ChatUI({
 
     const handleSubmit = useCallback(
         async (content: string) => {
-            if (!onSendMessage) {
-                throw new Error("ChatUI requires onSendMessage to send messages");
-            }
-            setLoading(true);
-            try {
-                await onSendMessage(content);
-            } finally {
-                setLoading(false);
-            }
+            if (!content.trim()) return;
+            await onSendMessage(content);
         },
-        [onSendMessage, setLoading],
+        [onSendMessage],
     );
 
     return (
@@ -79,6 +79,17 @@ export function ChatUI({
                     viewportRef={viewportRef}
                 >
                     <div className="mx-auto flex max-w-3xl flex-col gap-2 px-4 py-6">
+                        {hasOlderMessages && onLoadOlder && (
+                            <div className="flex justify-center py-2">
+                                <button
+                                    type="button"
+                                    className="text-muted-foreground hover:text-foreground text-sm underline"
+                                    onClick={onLoadOlder}
+                                >
+                                    Load older messages
+                                </button>
+                            </div>
+                        )}
                         {messages.length === 0 && !isLoading && !error ? (
                             <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
                                 <h2 className="text-2xl font-semibold">

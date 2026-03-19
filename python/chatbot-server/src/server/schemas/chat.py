@@ -183,10 +183,20 @@ class FolderCreateRequest(BaseModel):
     )
 
 
-class FolderUpdateRequest(BaseModel):
-    """Request to rename a folder."""
+class FolderPatchRequest(BaseModel):
+    """Request to patch a folder (name and/or system_prompt; at least one required)."""
 
-    name: str = Field(..., min_length=1, max_length=255)
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    system_prompt: str | None = Field(
+        default=None,
+        description="Optional system prompt; omit to leave unchanged",
+    )
+
+    @model_validator(mode="after")
+    def at_least_one_field(self) -> "FolderPatchRequest":
+        if "name" not in self.model_fields_set and "system_prompt" not in self.model_fields_set:
+            raise ValueError("Provide at least one of name or system_prompt")
+        return self
 
 
 class FolderMoveRequest(BaseModel):

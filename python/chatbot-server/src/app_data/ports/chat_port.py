@@ -126,6 +126,13 @@ class ChatPort(Protocol):
         """Rename folder. Owner only. Returns updated Folder or None."""
         ...
 
+    async def update_folder(
+        self, folder_id: Uuid4Str, subject: Subject, **kwargs: str | None
+    ) -> Folder | None:
+        """Update folder (name and/or system_prompt). Owner only.
+        Pass name=..., system_prompt=... for fields to update. system_prompt=None clears it."""
+        ...
+
     async def move_folder_to_parent(
         self, folder_id: Uuid4Str, subject: Subject, parent_id: Uuid4Str | None
     ) -> Folder | None:

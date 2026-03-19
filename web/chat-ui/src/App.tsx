@@ -6,8 +6,10 @@ import { AppLayout } from "@/components/layout";
 import {
     ChatPage,
     DashboardPage,
+    FolderViewPage,
     LoginPage,
     SignupPage,
+    StatefulChatPage,
 } from "@/pages";
 import { useAuthStore } from "@/stores/auth";
 
@@ -24,11 +26,36 @@ export default function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
                 <Route element={<AppLayout />}>
+                    <Route path="/" element={<Navigate to="/chat" replace />} />
                     <Route
-                        path="/"
+                        path="/chat"
                         element={
                             <ProtectedRoute>
                                 <ChatPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/chats"
+                        element={
+                            <ProtectedRoute>
+                                <StatefulChatPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/chats/:chatId"
+                        element={
+                            <ProtectedRoute>
+                                <StatefulChatPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/chats/folders/:folderId"
+                        element={
+                            <ProtectedRoute>
+                                <FolderViewPage />
                             </ProtectedRoute>
                         }
                     />
@@ -41,7 +68,7 @@ export default function App() {
                         }
                     />
                 </Route>
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to="/chat" replace />} />
             </Routes>
         </BrowserRouter>
     );

@@ -311,6 +311,35 @@ class MockChatAdapter:
         self._folders[folder_id] = updated
         return updated
 
+    async def update_folder(
+        self, folder_id: str, subject: Subject, **kwargs: str | None
+    ) -> Folder | None:
+        folder = self._folders.get(folder_id)
+        if folder is None or folder.owner_subject != subject.to_str():
+            return None
+        new_name = folder.name
+        if "name" in kwargs and kwargs["name"]:
+            new_name = kwargs["name"].strip()
+        new_system_prompt = folder.system_prompt
+        if "system_prompt" in kwargs:
+            new_system_prompt = (
+                kwargs["system_prompt"].strip()
+                if kwargs["system_prompt"]
+                else None
+            )
+        now = _now()
+        updated = Folder(
+            id=folder.id,
+            owner_subject=folder.owner_subject,
+            parent_id=folder.parent_id,
+            name=new_name,
+            system_prompt=new_system_prompt,
+            created_at=folder.created_at,
+            updated_at=now,
+        )
+        self._folders[folder_id] = updated
+        return updated
+
     def _is_descendant(self, node_id: str, ancestor_id: str) -> bool:
         """Check if node_id is a descendant of ancestor_id (walk up from node)."""
         current = self._folders.get(node_id)

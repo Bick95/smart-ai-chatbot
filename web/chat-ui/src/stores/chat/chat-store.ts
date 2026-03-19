@@ -34,6 +34,8 @@ interface ChatActions {
     getCurrentChat: () => Chat | null;
     /** Get messages for a chat */
     getMessages: (chatId: string) => Message[];
+    /** Reset temporary chat: clear all chats and selection */
+    resetTemporaryChat: () => void;
 }
 
 const initialState: ChatState = {
@@ -110,5 +112,9 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
     getMessages: (chatId) => {
         const chat = get().chats[chatId];
         return chat?.messages ?? [];
+    },
+
+    resetTemporaryChat: () => {
+        set({ chats: {}, currentChatId: null });
     },
 }));

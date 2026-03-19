@@ -5,6 +5,7 @@ import {
     LogIn,
     LogOut,
     MessageSquare,
+    MessageSquarePlus,
     Plus,
     UserPlus,
 } from "lucide-react";
@@ -31,14 +32,41 @@ import {
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useAuthStore } from "@/stores/auth";
+import { useChatStore } from "@/stores/chat";
+import { ChatsSidebar } from "./ChatsSidebar";
+
+function StartNewChatButton() {
+    const resetTemporaryChat = useChatStore((s) => s.resetTemporaryChat);
+    return (
+        <SidebarGroup>
+            <SidebarGroupContent>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            onClick={() => resetTemporaryChat()}
+                        >
+                            <Plus className="size-4" />
+                            <span>Start new chat</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarGroupContent>
+        </SidebarGroup>
+    );
+}
 
 export function AppSidebar() {
     const user = useAuthStore((s) => s.user);
     const clearAuth = useAuthStore((s) => s.clearAuth);
     const location = useLocation();
 
+    const isOnChats =
+        location.pathname.startsWith("/chats");
+    const isOnTemporaryChat = location.pathname === "/chat";
+
     const navItems = [
-        { to: "/", icon: MessageSquare, label: "Chat" },
+        { to: "/chat", icon: MessageSquare, label: "Temporary Chat" },
+        { to: "/chats", icon: MessageSquarePlus, label: "Chats" },
         { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     ];
 
@@ -54,19 +82,17 @@ export function AppSidebar() {
                 <SidebarGroup>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild>
-                                    <Link to="/">
-                                        <Plus className="size-4" />
-                                        <span>New chat</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
                             {navItems.map(({ to, icon: Icon, label }) => (
                                 <SidebarMenuItem key={to}>
                                     <SidebarMenuButton
                                         asChild
-                                        isActive={location.pathname === to}
+                                        isActive={
+                                            location.pathname === to ||
+                                            (to === "/chats" &&
+                                                location.pathname.startsWith(
+                                                    "/chats"
+                                                ))
+                                        }
                                     >
                                         <Link to={to}>
                                             <Icon className="size-4" />
@@ -78,6 +104,12 @@ export function AppSidebar() {
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
+                {isOnChats && (
+                    <ChatsSidebar />
+                )}
+                {isOnTemporaryChat && (
+                    <StartNewChatButton />
+                )}
             </SidebarContent>
 
             <SidebarFooter className="border-t border-sidebar-border">

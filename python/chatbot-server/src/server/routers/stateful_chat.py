@@ -38,8 +38,8 @@ from src.server.schemas.chat import (
     ChatUpdateRequest,
     FolderCreateRequest,
     FolderMoveRequest,
+    FolderPatchRequest,
     FolderResponseItem,
-    FolderUpdateRequest,
     MoveChatToFolderRequest,
     ShareRequest,
     ShareResponseItem,
@@ -366,6 +366,20 @@ async def list_folders(
     return [_folder_to_response(f) for f in folders]
 
 
+@folders_router.get("/{folder_id}", response_model=FolderResponseItem)
+async def get_folder(
+    folder_id: str,
+    chat_port: ChatPort = Depends(get_chat_port),
+    subject: SubjectPayload = Depends(get_current_subject),
+) -> FolderResponseItem:
+    """Get a single folder by ID."""
+    subj = _subject_from_payload(subject)
+    folder = await chat_port.get_folder(folder_id, subj)
+    if folder is None:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    return _folder_to_response(folder)
+
+
 @folders_router.post("", response_model=FolderResponseItem)
 async def create_folder(
     body: FolderCreateRequest,
@@ -381,15 +395,20 @@ async def create_folder(
 
 
 @folders_router.patch("/{folder_id}", response_model=FolderResponseItem)
-async def rename_folder(
+async def patch_folder(
     folder_id: str,
-    body: FolderUpdateRequest,
+    body: FolderPatchRequest,
     chat_port: ChatPort = Depends(get_chat_port),
     subject: SubjectPayload = Depends(get_current_subject),
 ) -> FolderResponseItem:
-    """Rename a folder."""
+    """Update a folder (name and/or system_prompt)."""
     subj = _subject_from_payload(subject)
-    folder = await chat_port.rename_folder(folder_id, subj, body.name)
+    patch_kwargs: dict[str, str | None] = {}
+    if "name" in body.model_fields_set and body.name:
+        patch_kwargs["name"] = body.name
+    if "system_prompt" in body.model_fields_set:
+        patch_kwargs["system_prompt"] = body.system_prompt
+    folder = await chat_port.update_folder(folder_id, subj, **patch_kwargs)
     if folder is None:
         raise HTTPException(status_code=404, detail="Folder not found")
     return _folder_to_response(folder)
