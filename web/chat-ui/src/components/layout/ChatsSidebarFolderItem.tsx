@@ -1,6 +1,8 @@
 "use client";
 
 import { Link, useLocation } from "react-router-dom";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 
 import {
     DropdownMenu,
@@ -30,6 +32,10 @@ function isOwner(ownerSubject: string): boolean {
     return ownerSubject === `user:${user.id}`;
 }
 
+export const DROP_ROOT = "drop-root";
+export const DROP_FOLDER_PREFIX = "drop-folder-";
+export const DRAG_FOLDER_PREFIX = "drag-folder-";
+
 export interface ChatsSidebarFolderItemProps {
     folder: FolderResponseItem;
     depth: number;
@@ -49,6 +55,7 @@ export interface ChatsSidebarFolderItemProps {
     ) => void;
     onLoadFolders: (parentId: string) => void;
     onLoadChats: (folderId: string, cursor?: string | null) => void;
+    draggable?: boolean;
 }
 
 export function ChatsSidebarFolderItem({
@@ -62,9 +69,37 @@ export function ChatsSidebarFolderItem({
     onManageOpen,
     onLoadFolders,
     onLoadChats,
+    draggable = true,
 }: ChatsSidebarFolderItemProps) {
     const location = useLocation();
     const isExpanded = expandedFolders.has(folder.id);
+    const canDrag = draggable && isOwner(folder.owner_subject);
+
+    const {
+        attributes,
+        listeners,
+        setNodeRef: setDraggableRef,
+        transform,
+        isDragging,
+    } = useDraggable({
+        id: `${DRAG_FOLDER_PREFIX}${folder.id}`,
+        data: { type: "folder" as const, id: folder.id },
+        disabled: !canDrag,
+    });
+
+    const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+        id: `${DROP_FOLDER_PREFIX}${folder.id}`,
+        data: { type: "folder" as const, folderId: folder.id },
+    });
+
+    const setNodeRef = (node: HTMLDivElement | null) => {
+        setDraggableRef(node);
+        setDroppableRef(node);
+    };
+
+    const dragStyle = transform
+        ? { transform: CSS.Translate.toString(transform) }
+        : undefined;
     const childFolders = foldersByParent[folder.id] ?? [];
     const folderChats = folderChatsByFolderId[folder.id] ?? {
         items: [],
@@ -83,8 +118,10 @@ export function ChatsSidebarFolderItem({
     return (
         <div className="flex flex-col">
             <div
-                className="flex items-center gap-1"
-                style={{ paddingLeft: `${depth * 12}px` }}
+                ref={setNodeRef}
+                style={{ ...dragStyle, paddingLeft: `${depth * 12}px` }}
+                className={`flex items-center gap-1 ${isDragging ? "opacity-50" : ""} ${isOver ? "ring-1 ring-primary rounded" : ""} ${canDrag ? "cursor-grab active:cursor-grabbing" : ""}`}
+                {...(canDrag ? { ...listeners, ...attributes } : {})}
             >
                 <button
                     type="button"

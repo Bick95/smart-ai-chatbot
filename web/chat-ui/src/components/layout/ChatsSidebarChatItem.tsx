@@ -1,6 +1,8 @@
 "use client";
 
 import { Link, useLocation } from "react-router-dom";
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 
 import {
     DropdownMenu,
@@ -20,9 +22,12 @@ function isOwner(ownerSubject: string): boolean {
     return ownerSubject === `user:${user.id}`;
 }
 
+const DRAG_PREFIX = "drag-chat-";
+
 export interface ChatsSidebarChatItemProps {
     chat: ChatResponseItem;
     depth: number;
+    draggable?: boolean;
     onManageOpen: (
         type: "chat" | "folder",
         id: string,
@@ -34,15 +39,35 @@ export interface ChatsSidebarChatItemProps {
 export function ChatsSidebarChatItem({
     chat,
     depth,
+    draggable = true,
     onManageOpen,
 }: ChatsSidebarChatItemProps) {
     const location = useLocation();
     const isActive = location.pathname === `/chats/${chat.id}`;
+    const canDrag = draggable && isOwner(chat.owner_subject);
+
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        isDragging,
+    } = useDraggable({
+        id: `${DRAG_PREFIX}${chat.id}`,
+        data: { type: "chat" as const, id: chat.id },
+        disabled: !canDrag,
+    });
+
+    const style = transform
+        ? { transform: CSS.Translate.toString(transform) }
+        : undefined;
 
     return (
         <div
-            className="flex items-center gap-1"
-            style={{ paddingLeft: `${depth * 12}px` }}
+            ref={setNodeRef}
+            style={{ ...style, paddingLeft: `${depth * 12}px` }}
+            className={`flex items-center gap-1 ${isDragging ? "opacity-50" : ""} ${canDrag ? "cursor-grab active:cursor-grabbing" : ""}`}
+            {...(canDrag ? { ...listeners, ...attributes } : {})}
         >
             <span className="h-6 w-6 shrink-0" />
             <Link

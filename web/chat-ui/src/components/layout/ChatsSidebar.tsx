@@ -2,6 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+    DndContext,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    useDroppable,
+} from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
 
 import {
     SidebarGroup,
@@ -14,8 +22,28 @@ import { useStatefulChatStore } from "@/stores/stateful-chat";
 import type { ResourceManagementTab } from "@/components/resource-management/ResourceManagement";
 import { ResourceManagement } from "@/components/resource-management/ResourceManagement";
 import { ChatsSidebarChatItem } from "./ChatsSidebarChatItem";
-import { ChatsSidebarFolderItem } from "./ChatsSidebarFolderItem";
+import {
+    ChatsSidebarFolderItem,
+    DROP_FOLDER_PREFIX,
+    DROP_ROOT,
+} from "./ChatsSidebarFolderItem";
 import { Plus } from "lucide-react";
+
+function RootDropZone() {
+    const { setNodeRef, isOver } = useDroppable({
+        id: DROP_ROOT,
+        data: { type: "root" as const },
+    });
+    return (
+        <div
+            ref={setNodeRef}
+            className={`mb-1 min-h-6 rounded px-2 py-1 text-muted-foreground text-xs transition-colors ${isOver ? "bg-sidebar-accent text-sidebar-accent-foreground" : ""}`}
+            aria-label="Drop to move to root"
+        >
+            Root
+        </div>
+    );
+}
 
 interface ManageState {
     type: "chat" | "folder";
@@ -64,11 +92,61 @@ export function ChatsSidebar() {
         []
     );
 
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: { distance: 8 },
+        })
+    );
+
+    const handleDragEnd = useCallback((event: DragEndEvent) => {
+            const { active, over } = event;
+            if (!over) return;
+
+            const activeData = active.data?.current as { type?: string; id?: string } | undefined;
+            if (!activeData?.id || !activeData?.type) return;
+
+            const overId = String(over.id);
+            let targetFolderId: string | null;
+            const overData = over.data?.current as { folderId?: string } | undefined;
+            if (overId === DROP_ROOT) {
+                targetFolderId = null;
+            } else if (overId.startsWith(DROP_FOLDER_PREFIX)) {
+                targetFolderId = overData?.folderId ?? overId.slice(DROP_FOLDER_PREFIX.length);
+            } else {
+                return;
+            }
+
+            if (activeData.type === "chat") {
+                store.moveChatToFolder(activeData.id, targetFolderId);
+            } else if (activeData.type === "folder") {
+                if (targetFolderId === activeData.id) return;
+                const foldersByParent = store.foldersByParent;
+                const isDescendant = (ancestorId: string, nodeId: string): boolean => {
+                    if (ancestorId === nodeId) return true;
+                    const children = foldersByParent[ancestorId] ?? [];
+                    for (const c of children) {
+                        if (c.id === nodeId) return true;
+                        if (isDescendant(c.id, nodeId)) return true;
+                    }
+                    return false;
+                };
+                if (targetFolderId && isDescendant(activeData.id, targetFolderId)) return;
+                store.moveFolderToParent(activeData.id, targetFolderId);
+            }
+        },
+        [store]
+    );
+
     return (
         <>
             <SidebarGroup>
                 <SidebarGroupContent>
-                    <SidebarMenu>
+                    <DndContext
+                        sensors={sensors}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <RootDropZone />
+                        <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild>
                                 <Link to="/chats?new=1">
@@ -122,6 +200,7 @@ export function ChatsSidebar() {
                             </SidebarMenuItem>
                         )}
                     </SidebarMenu>
+                    </DndContext>
                 </SidebarGroupContent>
             </SidebarGroup>
             {manageState && (
