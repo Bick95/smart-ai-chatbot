@@ -18,7 +18,7 @@ class MockAuthAdapter:
     async def signup(self, email: str, username: str, password: str) -> AuthUser:
         email_lower = email.lower().strip()
         for u in self._users.values():
-            if u.email == email_lower:
+            if u.user.email == email_lower:
                 raise ValueError("Email already registered")
         user_id = str(uuid4())
         user = AuthUser(
