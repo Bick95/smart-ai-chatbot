@@ -35,6 +35,11 @@ export function StatefulChatPage() {
     const folderIdParam = searchParams.get("folderId");
 
     const store = useStatefulChatStore();
+    const loadChats = useStatefulChatStore((s) => s.loadChats);
+    const loadFolders = useStatefulChatStore((s) => s.loadFolders);
+    const selectChat = useStatefulChatStore((s) => s.selectChat);
+    const loadMessages = useStatefulChatStore((s) => s.loadMessages);
+
     const chat = chatId ? store.chats[chatId] : null;
     const messagesData = chatId ? store.messagesByChatId[chatId] : null;
     const messages: Message[] = (messagesData?.items ?? [])
@@ -43,18 +48,18 @@ export function StatefulChatPage() {
     const hasOlderMessages = !!messagesData?.nextCursor;
 
     useEffect(() => {
-        store.loadChats(null);
-        store.loadFolders(null);
-    }, [store]);
+        loadChats(null);
+        loadFolders(null);
+    }, [loadChats, loadFolders]);
 
     useEffect(() => {
         if (chatId && !isNewChat) {
-            store.selectChat(chatId);
-            store.loadMessages(chatId);
+            selectChat(chatId);
+            loadMessages(chatId);
         } else {
-            store.selectChat(null);
+            selectChat(null);
         }
-    }, [chatId, isNewChat, store]);
+    }, [chatId, isNewChat, selectChat, loadMessages]);
 
     const handleLoadOlder = useCallback(() => {
         if (chatId && messagesData?.nextCursor) {

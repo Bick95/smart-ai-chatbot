@@ -54,6 +54,8 @@ interface ManageState {
 
 export function ChatsSidebar() {
     const store = useStatefulChatStore();
+    const loadChats = useStatefulChatStore((s) => s.loadChats);
+    const loadFolders = useStatefulChatStore((s) => s.loadFolders);
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
         new Set()
     );
@@ -64,9 +66,9 @@ export function ChatsSidebar() {
     const rootNextCursor = store.recentChatsNextCursor;
 
     useEffect(() => {
-        store.loadChats(null);
-        store.loadFolders(null);
-    }, [store]);
+        loadChats(null);
+        loadFolders(null);
+    }, [loadChats, loadFolders]);
 
     const toggleFolder = useCallback((folderId: string) => {
         setExpandedFolders((prev) => {

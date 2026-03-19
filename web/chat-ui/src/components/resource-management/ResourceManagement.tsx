@@ -75,6 +75,9 @@ export function ResourceManagement({
     const [shareRole, setShareRole] = useState<"viewer" | "editor">("editor");
 
     const store = useStatefulChatStore();
+    const loadFolder = useStatefulChatStore((s) => s.loadFolder);
+    const loadFolders = useStatefulChatStore((s) => s.loadFolders);
+    const loadShares = useStatefulChatStore((s) => s.loadShares);
     const chat = resourceType === "chat" ? store.chats[resourceId] : null;
     const folder =
         resourceType === "folder"
@@ -106,21 +109,21 @@ export function ResourceManagement({
 
     useEffect(() => {
         if (resourceType === "folder") {
-            store.loadFolder(resourceId);
+            loadFolder(resourceId);
         }
-    }, [resourceId, resourceType, store]);
+    }, [resourceId, resourceType, loadFolder]);
 
     useEffect(() => {
         if (activeTab === "parent") {
-            store.loadFolders(null);
+            loadFolders(null);
         }
-    }, [activeTab, store]);
+    }, [activeTab, loadFolders]);
 
     useEffect(() => {
         if (resourceType === "chat" && activeTab === "permissions") {
-            store.loadShares(resourceId);
+            loadShares(resourceId);
         }
-    }, [resourceId, resourceType, activeTab, store]);
+    }, [resourceId, resourceType, activeTab, loadShares]);
 
     const handleSaveName = useCallback(async () => {
         if (resourceType === "chat") {

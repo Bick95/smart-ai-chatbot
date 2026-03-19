@@ -34,6 +34,8 @@ export function FolderViewPage() {
     } | null>(null);
 
     const store = useStatefulChatStore();
+    const loadFolder = useStatefulChatStore((s) => s.loadFolder);
+    const loadChats = useStatefulChatStore((s) => s.loadChats);
     const folder = store.currentFolder;
     const folderChats = folderId
         ? store.folderChatsByFolderId[folderId] ?? { items: [], nextCursor: null }
@@ -41,10 +43,10 @@ export function FolderViewPage() {
 
     useEffect(() => {
         if (folderId) {
-            store.loadFolder(folderId);
-            store.loadChats(folderId);
+            loadFolder(folderId);
+            loadChats(folderId);
         }
-    }, [folderId, store]);
+    }, [folderId, loadFolder, loadChats]);
 
     const handleNewChatInFolder = () => {
         if (folderId) {
