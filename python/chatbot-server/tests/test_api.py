@@ -133,6 +133,199 @@ class TestAuthEndpoints:
         response = client_with_auth_bypass.get("/api/v1/auth/users/not-a-uuid")
         assert response.status_code == 422
 
+    def test_login_returns_tokens_on_valid_credentials(self, client):
+        """Login with valid credentials returns user and tokens."""
+        client.post(
+            "/api/v1/auth/signup",
+            json={"email": "login@test.com", "username": "loginuser", "password": "password123"},
+        )
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"email": "login@test.com", "password": "password123"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["user"]["email"] == "login@test.com"
+        assert "auth_token" in data
+        assert "refresh_token" in data
+
+    def test_refresh_returns_new_tokens(self, client):
+        """Refresh with valid token returns new auth and refresh tokens."""
+        signup = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "refresh@test.com", "username": "refreshuser", "password": "password123"},
+        )
+        refresh_token = signup.json()["refresh_token"]
+        response = client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": refresh_token},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "auth_token" in data
+        assert "refresh_token" in data
+        assert data["user"]["email"] == "refresh@test.com"
+
+    def test_get_user_with_valid_token(self, client):
+        """Get user returns own user when authenticated."""
+        signup = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "getuser@test.com", "username": "getuser", "password": "password123"},
+        )
+        auth_token = signup.json()["auth_token"]
+        user_id = signup.json()["user"]["id"]
+        response = client.get(
+            f"/api/v1/auth/users/{user_id}",
+            headers={"Authorization": f"Bearer {auth_token}"},
+        )
+        assert response.status_code == 200
+        assert response.json()["email"] == "getuser@test.com"
+
+    def test_update_username_with_valid_token(self, client):
+        """Update username returns updated user."""
+        signup = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "upduser@test.com", "username": "oldname", "password": "password123"},
+        )
+        auth_token = signup.json()["auth_token"]
+        user_id = signup.json()["user"]["id"]
+        response = client.patch(
+            f"/api/v1/auth/users/{user_id}/username",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            json={"username": "newname"},
+        )
+        assert response.status_code == 200
+        assert response.json()["username"] == "newname"
+
+    def test_update_password_with_valid_token(self, client):
+        """Update password succeeds and allows login with new password."""
+        signup = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "pwduser@test.com", "username": "pwduser", "password": "oldpass123"},
+        )
+        auth_token = signup.json()["auth_token"]
+        user_id = signup.json()["user"]["id"]
+        r = client.patch(
+            f"/api/v1/auth/users/{user_id}/password",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            json={"password": "newpass456"},
+        )
+        assert r.status_code == 200
+        assert client.post(
+            "/api/v1/auth/login",
+            json={"email": "pwduser@test.com", "password": "newpass456"},
+        ).status_code == 200
+
+    def test_delete_user_with_valid_token(self, client):
+        """Delete user removes account."""
+        signup = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "deluser@test.com", "username": "deluser", "password": "password123"},
+        )
+        auth_token = signup.json()["auth_token"]
+        user_id = signup.json()["user"]["id"]
+        r = client.delete(
+            f"/api/v1/auth/users/{user_id}",
+            headers={"Authorization": f"Bearer {auth_token}"},
+        )
+        assert r.status_code == 200
+        assert client.post(
+            "/api/v1/auth/login",
+            json={"email": "deluser@test.com", "password": "password123"},
+        ).status_code == 401
+
+    def test_update_email_with_valid_token(self, client):
+        """Update email returns updated user."""
+        signup = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "oldemail@test.com", "username": "emailuser", "password": "password123"},
+        )
+        auth_token = signup.json()["auth_token"]
+        user_id = signup.json()["user"]["id"]
+        response = client.patch(
+            f"/api/v1/auth/users/{user_id}/email",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            json={"email": "newemail@test.com"},
+        )
+        assert response.status_code == 200
+        assert response.json()["email"] == "newemail@test.com"
+
+    def test_refresh_returns_401_for_invalid_token(self, client):
+        """Refresh with invalid token returns 401."""
+        response = client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": "invalid-token"},
+        )
+        assert response.status_code == 401
+
+    def test_get_user_returns_403_for_other_user(self, client):
+        """Get user returns 403 when requesting another user's data."""
+        signup = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "owner@test.com", "username": "owner", "password": "password123"},
+        )
+        auth_token = signup.json()["auth_token"]
+        other_id = "660e8400-e29b-41d4-a716-446655440001"
+        response = client.get(
+            f"/api/v1/auth/users/{other_id}",
+            headers={"Authorization": f"Bearer {auth_token}"},
+        )
+        assert response.status_code == 403
+
+    def test_get_user_returns_404_for_nonexistent(self, client_with_auth_bypass):
+        """Get user returns 404 when user does not exist (auth bypass, no signup)."""
+        response = client_with_auth_bypass.get(
+            "/api/v1/auth/users/550e8400-e29b-41d4-a716-446655440000"
+        )
+        assert response.status_code == 404
+
+    def test_signup_returns_409_for_duplicate_email(self, client):
+        """Signup with existing email returns 409."""
+        client.post(
+            "/api/v1/auth/signup",
+            json={"email": "signup-dup@test.com", "username": "user1", "password": "password123"},
+        )
+        r = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "signup-dup@test.com", "username": "user2", "password": "otherpass123"},
+        )
+        assert r.status_code == 409
+        assert "email" in r.json()["detail"].lower()
+
+    def test_update_email_returns_409_for_duplicate(self, client):
+        """Update email to existing email returns 409."""
+        client.post(
+            "/api/v1/auth/signup",
+            json={"email": "email-dup-first@test.com", "username": "first", "password": "password123"},
+        )
+        r2 = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "email-dup-second@test.com", "username": "second", "password": "password123"},
+        )
+        auth_token = r2.json()["auth_token"]
+        user_id = r2.json()["user"]["id"]
+        r = client.patch(
+            f"/api/v1/auth/users/{user_id}/email",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            json={"email": "email-dup-first@test.com"},
+        )
+        assert r.status_code == 409
+
+    def test_update_password_returns_404_for_nonexistent(self, client_with_auth_bypass):
+        """Update password returns 404 when user does not exist."""
+        r = client_with_auth_bypass.patch(
+            "/api/v1/auth/users/550e8400-e29b-41d4-a716-446655440000/password",
+            json={"password": "newpass123"},
+        )
+        assert r.status_code == 404
+
+    def test_delete_user_returns_404_for_nonexistent(self, client_with_auth_bypass):
+        """Delete user returns 404 when user does not exist."""
+        r = client_with_auth_bypass.delete(
+            "/api/v1/auth/users/550e8400-e29b-41d4-a716-446655440000"
+        )
+        assert r.status_code == 404
+
 
 @pytest.mark.unit
 class TestHealthEndpoint:
@@ -348,3 +541,131 @@ class TestStatefulChatEndpoints:
         r5 = client_with_auth_bypass.get(f"/api/v1/chats/{chat_id}/shares")
         assert r5.status_code == 200
         assert len(r5.json()) == 0
+
+    def test_get_folder(self, client_with_auth_bypass):
+        """Get folder returns folder by id."""
+        r1 = client_with_auth_bypass.post(
+            "/api/v1/folders", json={"name": "Get Folder"}
+        )
+        assert r1.status_code == 200
+        folder_id = r1.json()["id"]
+        r2 = client_with_auth_bypass.get(f"/api/v1/folders/{folder_id}")
+        assert r2.status_code == 200
+        assert r2.json()["name"] == "Get Folder"
+
+    def test_patch_folder_name_and_system_prompt(self, client_with_auth_bypass):
+        """Patch folder updates name and system_prompt."""
+        r1 = client_with_auth_bypass.post(
+            "/api/v1/folders", json={"name": "Original"}
+        )
+        assert r1.status_code == 200
+        folder_id = r1.json()["id"]
+        r2 = client_with_auth_bypass.patch(
+            f"/api/v1/folders/{folder_id}",
+            json={"name": "Renamed", "system_prompt": "You are helpful."},
+        )
+        assert r2.status_code == 200
+        assert r2.json()["name"] == "Renamed"
+        assert r2.json()["system_prompt"] == "You are helpful."
+
+    def test_add_message_with_reply(self, client_with_mock_agent):
+        """Add message with generate_reply returns message and AI reply."""
+        r1 = client_with_mock_agent.post("/api/v1/chats", json={})
+        assert r1.status_code == 200
+        chat_id = r1.json()["id"]
+        r2 = client_with_mock_agent.post(
+            f"/api/v1/chats/{chat_id}/messages",
+            json={"role": "user", "content": "Hello", "generate_reply": True},
+        )
+        assert r2.status_code == 200
+        data = r2.json()
+        assert "message" in data
+        assert data["message"]["role"] == "user"
+        assert data["message"]["content"] == "Hello"
+        assert "reply" in data
+        assert data["reply"] == "Mocked reply"
+
+    def test_update_chat_400_when_no_fields(self, client_with_auth_bypass):
+        """PATCH chat with empty body returns 400."""
+        r1 = client_with_auth_bypass.post("/api/v1/chats", json={})
+        assert r1.status_code == 200
+        chat_id = r1.json()["id"]
+        r2 = client_with_auth_bypass.patch(
+            f"/api/v1/chats/{chat_id}",
+            json={},
+        )
+        assert r2.status_code == 400
+        assert "title" in r2.json()["detail"].lower() or "folder" in r2.json()["detail"].lower()
+
+    def test_update_chat_404_for_unknown(self, client_with_auth_bypass):
+        """PATCH chat returns 404 for unknown chat."""
+        r = client_with_auth_bypass.patch(
+            "/api/v1/chats/550e8400-e29b-41d4-a716-446655440099",
+            json={"title": "New Title"},
+        )
+        assert r.status_code == 404
+
+    def test_add_message_rejects_non_user_role(self, client_with_auth_bypass):
+        """POST message with role!=user returns 400."""
+        r1 = client_with_auth_bypass.post("/api/v1/chats", json={})
+        assert r1.status_code == 200
+        chat_id = r1.json()["id"]
+        r2 = client_with_auth_bypass.post(
+            f"/api/v1/chats/{chat_id}/messages",
+            json={"role": "assistant", "content": "Hi", "generate_reply": False},
+        )
+        assert r2.status_code == 400
+
+    def test_add_message_403_for_unknown_chat(self, client_with_auth_bypass):
+        """POST message to unknown chat returns 403 (no access)."""
+        r = client_with_auth_bypass.post(
+            "/api/v1/chats/550e8400-e29b-41d4-a716-446655440099/messages",
+            json={"role": "user", "content": "Hi", "generate_reply": False},
+        )
+        assert r.status_code == 403
+
+    def test_get_messages_404_for_unknown_chat(self, client_with_auth_bypass):
+        """GET messages returns 404 for unknown chat."""
+        r = client_with_auth_bypass.get(
+            "/api/v1/chats/550e8400-e29b-41d4-a716-446655440099/messages"
+        )
+        assert r.status_code == 404
+
+    def test_delete_folder_404_for_unknown(self, client_with_auth_bypass):
+        """DELETE folder returns 404 for unknown folder."""
+        r = client_with_auth_bypass.delete(
+            "/api/v1/folders/550e8400-e29b-41d4-a716-446655440099"
+        )
+        assert r.status_code == 404
+
+    def test_get_folder_404_for_unknown(self, client_with_auth_bypass):
+        """GET folder returns 404 for unknown folder."""
+        r = client_with_auth_bypass.get(
+            "/api/v1/folders/550e8400-e29b-41d4-a716-446655440099"
+        )
+        assert r.status_code == 404
+
+    def test_move_chat_to_folder_404_for_unknown(self, client_with_auth_bypass):
+        """PATCH chat folder returns 404 for unknown chat."""
+        r = client_with_auth_bypass.patch(
+            "/api/v1/chats/550e8400-e29b-41d4-a716-446655440099/folder",
+            json={"folder_id": None},
+        )
+        assert r.status_code == 404
+
+    def test_list_shares_404_for_unknown_chat(self, client_with_auth_bypass):
+        """GET shares returns 404 for unknown chat."""
+        r = client_with_auth_bypass.get(
+            "/api/v1/chats/550e8400-e29b-41d4-a716-446655440099/shares"
+        )
+        assert r.status_code == 404
+
+    def test_remove_share_404_for_nonexistent(self, client_with_auth_bypass):
+        """DELETE share returns 404 when share does not exist."""
+        r1 = client_with_auth_bypass.post("/api/v1/chats", json={})
+        assert r1.status_code == 200
+        chat_id = r1.json()["id"]
+        r2 = client_with_auth_bypass.delete(
+            f"/api/v1/chats/{chat_id}/shares/user/660e8400-e29b-41d4-a716-446655440001"
+        )
+        assert r2.status_code == 404

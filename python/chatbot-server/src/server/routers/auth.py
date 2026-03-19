@@ -83,7 +83,7 @@ async def signup(
         )
         return _user_to_tokens_response(user)
     except Exception as e:
-        if "unique" in str(e).lower() or "duplicate" in str(e).lower():
+        if "unique" in str(e).lower() or "duplicate" in str(e).lower() or "already" in str(e).lower():
             raise HTTPException(status_code=409, detail="Email already registered")
         _logger.warning("signup: unexpected %s", type(e).__name__, exc_info=True)
         # Never expose internal error details to clients

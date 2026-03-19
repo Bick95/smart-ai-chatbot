@@ -75,3 +75,13 @@ markers = [
     "integration: Integration tests that may require external dependencies",
     "slow: Tests that take a long time to run",
 ]
+
+[tool.coverage.run]
+omit = ["src/main.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+]

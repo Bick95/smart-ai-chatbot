@@ -243,8 +243,6 @@ class MockChatAdapter:
         folder = self._folders.get(folder_id)
         if folder is None:
             return None
-        if folder.owner_subject != subject.to_str():
-            return None
         if not self._has_folder_access(folder_id, subject):
             return None
         return folder
