@@ -235,6 +235,17 @@ async def add_message(
         raise HTTPException(status_code=403, detail="No edit access to this chat")
     except ValueError:
         raise HTTPException(status_code=404, detail="Chat not found")
+
+    # Auto-name chat from first user message if no title
+    if body.role == MessageRole.USER and body.content.strip():
+        chat = await chat_port.get_chat(chat_id, subj)
+        if chat and (not chat.title or not chat.title.strip()):
+            title = body.content.strip()[:30]
+            if title:
+                await chat_port.update_chat(
+                    chat_id, subj, title=title, update_title=True
+                )
+
     reply_content: str | None = None
 
     if body.role == MessageRole.USER and body.generate_reply:

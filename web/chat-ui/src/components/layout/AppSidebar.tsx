@@ -1,12 +1,13 @@
 "use client";
 
 import {
-    LayoutDashboard,
+    ChevronsUpDown,
     LogIn,
     LogOut,
     MessageSquare,
     MessageSquarePlus,
     Plus,
+    User,
     UserPlus,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -67,7 +68,6 @@ export function AppSidebar() {
     const navItems = [
         { to: "/chat", icon: MessageSquare, label: "Temporary Chat" },
         { to: "/chats", icon: MessageSquarePlus, label: "Chats" },
-        { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     ];
 
     return (
@@ -78,10 +78,10 @@ export function AppSidebar() {
                 </div>
             </SidebarHeader>
 
-            <SidebarContent>
+            <SidebarContent className="gap-4">
                 <SidebarGroup>
                     <SidebarGroupContent>
-                        <SidebarMenu>
+                        <SidebarMenu className="gap-1">
                             {navItems.map(({ to, icon: Icon, label }) => (
                                 <SidebarMenuItem key={to}>
                                     <SidebarMenuButton
@@ -112,7 +112,7 @@ export function AppSidebar() {
                 )}
             </SidebarContent>
 
-            <SidebarFooter className="border-t border-sidebar-border">
+            <SidebarFooter className="mt-auto border-t border-sidebar-border">
                 <SidebarMenu>
                     {user ? (
                         <SidebarMenuItem>
@@ -122,14 +122,14 @@ export function AppSidebar() {
                                         size="lg"
                                         className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                                     >
-                                        <Avatar className="size-8">
+                                        <Avatar className="size-8 shrink-0">
                                             <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
                                                 {user.username
                                                     .slice(0, 2)
                                                     .toUpperCase()}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <div className="grid flex-1 text-left text-sm leading-tight">
+                                        <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
                                             <span className="truncate font-medium">
                                                 {user.username}
                                             </span>
@@ -137,6 +137,7 @@ export function AppSidebar() {
                                                 {user.email}
                                             </span>
                                         </div>
+                                        <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
                                     </SidebarMenuButton>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent
@@ -155,6 +156,13 @@ export function AppSidebar() {
                                             </p>
                                         </div>
                                     </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem asChild>
+                                        <Link to="/dashboard">
+                                            <User className="size-4" />
+                                            Account
+                                        </Link>
+                                    </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                         variant="destructive"

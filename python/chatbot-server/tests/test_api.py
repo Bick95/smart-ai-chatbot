@@ -585,6 +585,26 @@ class TestStatefulChatEndpoints:
         assert "reply" in data
         assert data["reply"] == "Mocked reply"
 
+    def test_add_message_auto_names_chat_from_first_message(
+        self, client_with_auth_bypass
+    ):
+        """First user message sets chat title to first 30 chars."""
+        r1 = client_with_auth_bypass.post("/api/v1/chats", json={})
+        assert r1.status_code == 200
+        chat_id = r1.json()["id"]
+        assert r1.json().get("title") is None or r1.json().get("title") == ""
+        first_msg = "What is the capital of France and why is it significant?"
+        r2 = client_with_auth_bypass.post(
+            f"/api/v1/chats/{chat_id}/messages",
+            json={"role": "user", "content": first_msg, "generate_reply": False},
+        )
+        assert r2.status_code == 200
+        r3 = client_with_auth_bypass.get(f"/api/v1/chats/{chat_id}")
+        assert r3.status_code == 200
+        # Title is first 30 chars of message; adapter may strip when storing
+        expected_title = first_msg.strip()[:30].strip()
+        assert r3.json()["title"] == expected_title
+
     def test_update_chat_400_when_no_fields(self, client_with_auth_bypass):
         """PATCH chat with empty body returns 400."""
         r1 = client_with_auth_bypass.post("/api/v1/chats", json={})

@@ -21,6 +21,7 @@ import {
     ChevronDown,
     ChevronRight,
     Folder,
+    FolderPlus,
     MessageSquarePlus,
     MoreHorizontal,
 } from "lucide-react";
@@ -53,6 +54,7 @@ export interface ChatsSidebarFolderItemProps {
         name?: string,
         defaultTab?: ResourceManagementTab
     ) => void;
+    onCreateSubfolder?: (parentId: string) => void;
     onLoadFolders: (parentId: string) => void;
     onLoadChats: (folderId: string, cursor?: string | null) => void;
     draggable?: boolean;
@@ -67,6 +69,7 @@ export function ChatsSidebarFolderItem({
     folderChatsByFolderId,
     onLoadMoreChats,
     onManageOpen,
+    onCreateSubfolder,
     onLoadFolders,
     onLoadChats,
     draggable = true,
@@ -170,6 +173,14 @@ export function ChatsSidebarFolderItem({
                                 New chat in folder
                             </Link>
                         </DropdownMenuItem>
+                        {isOwner(folder.owner_subject) && onCreateSubfolder && (
+                            <DropdownMenuItem
+                                onClick={() => onCreateSubfolder(folder.id)}
+                            >
+                                <FolderPlus className="mr-2 size-4" />
+                                New subfolder
+                            </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                             onClick={() =>
                                 onManageOpen("folder", folder.id, folder.name, "name")
@@ -214,6 +225,7 @@ export function ChatsSidebarFolderItem({
                             folderChatsByFolderId={folderChatsByFolderId}
                             onLoadMoreChats={onLoadMoreChats}
                             onManageOpen={onManageOpen}
+                            onCreateSubfolder={onCreateSubfolder}
                             onLoadFolders={onLoadFolders}
                             onLoadChats={onLoadChats}
                         />

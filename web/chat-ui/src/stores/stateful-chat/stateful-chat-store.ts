@@ -20,6 +20,7 @@ interface StatefulChatState {
     messagesByChatId: Record<string, { items: ChatMessageResponseItem[]; nextCursor: string | null }>;
     folderChatsByFolderId: Record<string, { items: ChatResponseItem[]; nextCursor: string | null }>;
     sharesByChatId: Record<string, ShareResponseItem[]>;
+    expandedFolderIds: Set<string>;
     isLoading: boolean;
     error: string | null;
 }
@@ -43,8 +44,38 @@ interface StatefulChatActions {
     loadShares: (chatId: string) => Promise<ShareResponseItem[]>;
     addShare: (chatId: string, subjectType: string, subjectId: string, role: "viewer" | "editor") => Promise<ShareResponseItem>;
     removeShare: (chatId: string, subjectType: string, subjectId: string) => Promise<boolean>;
+    toggleExpandedFolder: (folderId: string) => void;
+    ensureFolderExpanded: (folderId: string) => void;
     setError: (error: string | null) => void;
     clearError: () => void;
+}
+
+const EXPANDED_FOLDERS_KEY = "chats-sidebar-expanded-folders";
+
+function loadExpandedFolderIds(): Set<string> {
+    if (typeof sessionStorage === "undefined") return new Set();
+    try {
+        const saved = sessionStorage.getItem(EXPANDED_FOLDERS_KEY);
+        if (saved) {
+            const ids = JSON.parse(saved) as unknown;
+            return new Set(Array.isArray(ids) ? ids : []);
+        }
+    } catch {
+        // ignore
+    }
+    return new Set();
+}
+
+function saveExpandedFolderIds(ids: Set<string>): void {
+    if (typeof sessionStorage === "undefined") return;
+    try {
+        sessionStorage.setItem(
+            EXPANDED_FOLDERS_KEY,
+            JSON.stringify([...ids])
+        );
+    } catch {
+        // ignore
+    }
 }
 
 function getToken(): string | undefined {
@@ -64,19 +95,64 @@ export const useStatefulChatStore = create<
     messagesByChatId: {},
     folderChatsByFolderId: {},
     sharesByChatId: {},
+    expandedFolderIds: loadExpandedFolderIds(),
     isLoading: false,
     error: null,
+
+    toggleExpandedFolder: (folderId) =>
+        set((s) => {
+            const next = new Set(s.expandedFolderIds);
+            if (next.has(folderId)) next.delete(folderId);
+            else next.add(folderId);
+            saveExpandedFolderIds(next);
+            return { expandedFolderIds: next };
+        }),
+
+    ensureFolderExpanded: (folderId) =>
+        set((s) => {
+            if (s.expandedFolderIds.has(folderId)) return s;
+            const allFolders = Object.values(s.foldersByParent).flat();
+            const byId = new Map(allFolders.map((f) => [f.id, f]));
+            if (s.currentFolder?.id === folderId) byId.set(folderId, s.currentFolder);
+            const toExpand = new Set<string>();
+            let current: FolderResponseItem | undefined = byId.get(folderId);
+            while (current) {
+                toExpand.add(current.id);
+                const parentId = current.parent_id ?? null;
+                if (!parentId) break;
+                current = byId.get(parentId);
+            }
+            if (toExpand.size === 0) return s;
+            const next = new Set(s.expandedFolderIds);
+            for (const id of toExpand) next.add(id);
+            saveExpandedFolderIds(next);
+            return { expandedFolderIds: next };
+        }),
 
     createChat: async (folderId, title) => {
         set({ isLoading: true, error: null });
         try {
             const chat = await api.createChat(folderId, title, getToken());
-            set((s) => ({
-                chats: { ...s.chats, [chat.id]: chat },
-                currentChatId: chat.id,
-                recentChats: [chat, ...s.recentChats.filter((c) => c.id !== chat.id)],
-                isLoading: false,
-            }));
+            set((s) => {
+                const updates: Record<string, unknown> = {
+                    chats: { ...s.chats, [chat.id]: chat },
+                    currentChatId: chat.id,
+                    recentChats: [chat, ...s.recentChats.filter((c) => c.id !== chat.id)],
+                    isLoading: false,
+                };
+                if (folderId) {
+                    const key = folderId;
+                    const existing = s.folderChatsByFolderId[key];
+                    updates.folderChatsByFolderId = {
+                        ...s.folderChatsByFolderId,
+                        [key]: {
+                            items: [chat, ...(existing?.items ?? [])],
+                            nextCursor: existing?.nextCursor ?? null,
+                        },
+                    };
+                }
+                return updates;
+            });
             return chat;
         } catch (e) {
             set({
@@ -221,11 +297,51 @@ export const useStatefulChatStore = create<
                         created_at: new Date().toISOString(),
                     } as ChatMessageResponseItem & { id: string });
                 }
+                const chat = s.chats[chatId];
+                const needsTitle =
+                    chat &&
+                    (!chat.title || !chat.title.trim()) &&
+                    userMsg.role === "user" &&
+                    content.trim();
+                const newTitle = needsTitle
+                    ? content.trim().slice(0, 30)
+                    : undefined;
+                const updatedChat =
+                    newTitle && chat
+                        ? { ...chat, title: newTitle }
+                        : undefined;
+                const folderId = chat?.folder_id ?? null;
+                const folderChats =
+                    updatedChat && folderId
+                        ? {
+                              ...s.folderChatsByFolderId,
+                              [folderId]: {
+                                  ...s.folderChatsByFolderId[folderId],
+                                  items: (
+                                      s.folderChatsByFolderId[folderId]
+                                          ?.items ?? []
+                                  ).map((c) =>
+                                      c.id === chatId ? updatedChat : c
+                                  ),
+                              },
+                          }
+                        : s.folderChatsByFolderId;
                 return {
                     messagesByChatId: {
                         ...s.messagesByChatId,
                         [chatId]: { ...prev, items },
                     },
+                    chats:
+                        updatedChat
+                            ? { ...s.chats, [chatId]: updatedChat }
+                            : s.chats,
+                    recentChats:
+                        updatedChat
+                            ? s.recentChats.map((c) =>
+                                  c.id === chatId ? updatedChat : c
+                              )
+                            : s.recentChats,
+                    folderChatsByFolderId: folderChats,
                     isLoading: false,
                 };
             });

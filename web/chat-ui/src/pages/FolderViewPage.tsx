@@ -72,10 +72,10 @@ export function FolderViewPage() {
 
     return (
         <div className="flex min-h-0 flex-1 flex-col">
-            <Tabs defaultValue="manage" className="flex min-h-0 flex-1 flex-col">
+            <Tabs defaultValue="chats" className="flex min-h-0 flex-1 flex-col">
                 <TabsList className="shrink-0">
-                    <TabsTrigger value="manage">Manage</TabsTrigger>
                     <TabsTrigger value="chats">Chats</TabsTrigger>
+                    <TabsTrigger value="manage">Manage</TabsTrigger>
                 </TabsList>
 
                 <TabsContent

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
     DndContext,
     PointerSensor,
@@ -12,8 +12,17 @@ import {
 import type { DragEndEvent } from "@dnd-kit/core";
 
 import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
     SidebarGroup,
     SidebarGroupContent,
+    SidebarGroupLabel,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
@@ -27,7 +36,8 @@ import {
     DROP_FOLDER_PREFIX,
     DROP_ROOT,
 } from "./ChatsSidebarFolderItem";
-import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FolderPlus, Plus } from "lucide-react";
 
 function RootDropZone() {
     const { setNodeRef, isOver } = useDroppable({
@@ -37,7 +47,7 @@ function RootDropZone() {
     return (
         <div
             ref={setNodeRef}
-            className={`mb-1 min-h-6 rounded px-2 py-1 text-muted-foreground text-xs transition-colors ${isOver ? "bg-sidebar-accent text-sidebar-accent-foreground" : ""}`}
+            className={`mb-1 min-h-6 rounded-md px-2 py-1.5 text-muted-foreground text-xs transition-colors ${isOver ? "bg-sidebar-accent text-sidebar-accent-foreground" : ""}`}
             aria-label="Drop to move to root"
         >
             Root
@@ -56,10 +66,22 @@ export function ChatsSidebar() {
     const store = useStatefulChatStore();
     const loadChats = useStatefulChatStore((s) => s.loadChats);
     const loadFolders = useStatefulChatStore((s) => s.loadFolders);
-    const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
-        new Set()
+    const createFolder = useStatefulChatStore((s) => s.createFolder);
+    const expandedFolderIds = useStatefulChatStore((s) => s.expandedFolderIds);
+    const toggleExpandedFolder = useStatefulChatStore(
+        (s) => s.toggleExpandedFolder
     );
+    const ensureFolderExpanded = useStatefulChatStore(
+        (s) => s.ensureFolderExpanded
+    );
+    const { folderId: routeFolderId } = useParams<{ folderId?: string }>();
     const [manageState, setManageState] = useState<ManageState | null>(null);
+    const [newFolderOpen, setNewFolderOpen] = useState(false);
+    const [newFolderParentId, setNewFolderParentId] = useState<string | null>(
+        null
+    );
+    const [newFolderName, setNewFolderName] = useState("");
+    const [newFolderCreating, setNewFolderCreating] = useState(false);
 
     const rootFolders = store.foldersByParent["root"] ?? [];
     const rootChats = store.recentChats.filter((c) => !c.folder_id);
@@ -70,17 +92,25 @@ export function ChatsSidebar() {
         loadFolders(null);
     }, [loadChats, loadFolders]);
 
-    const toggleFolder = useCallback((folderId: string) => {
-        setExpandedFolders((prev) => {
-            const next = new Set(prev);
-            if (next.has(folderId)) {
-                next.delete(folderId);
-            } else {
-                next.add(folderId);
-            }
-            return next;
-        });
-    }, []);
+    useEffect(() => {
+        if (routeFolderId) {
+            ensureFolderExpanded(routeFolderId);
+        }
+    }, [routeFolderId, ensureFolderExpanded]);
+
+    useEffect(() => {
+        for (const folderId of expandedFolderIds) {
+            loadFolders(folderId);
+            loadChats(folderId);
+        }
+    }, [expandedFolderIds, loadFolders, loadChats]);
+
+    const toggleFolder = useCallback(
+        (folderId: string) => {
+            toggleExpandedFolder(folderId);
+        },
+        [toggleExpandedFolder]
+    );
 
     const handleManageOpen = useCallback(
         (
@@ -93,6 +123,28 @@ export function ChatsSidebar() {
         },
         []
     );
+
+    const handleCreateFolder = useCallback(async () => {
+        const name = newFolderName.trim();
+        if (!name) return;
+        setNewFolderCreating(true);
+        try {
+            await createFolder(name, newFolderParentId);
+            setNewFolderOpen(false);
+            setNewFolderName("");
+            setNewFolderParentId(null);
+            loadFolders(null);
+            if (newFolderParentId) loadFolders(newFolderParentId);
+        } finally {
+            setNewFolderCreating(false);
+        }
+    }, [newFolderName, newFolderParentId, createFolder, loadFolders]);
+
+    const openNewFolderDialog = useCallback((parentId: string | null) => {
+        setNewFolderParentId(parentId);
+        setNewFolderName("");
+        setNewFolderOpen(true);
+    }, []);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -142,27 +194,38 @@ export function ChatsSidebar() {
     return (
         <>
             <SidebarGroup>
+                <SidebarGroupLabel>Chats</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <DndContext
                         sensors={sensors}
                         onDragEnd={handleDragEnd}
                     >
+                        <SidebarMenu className="gap-1 mb-1">
+                            <SidebarMenuItem>
+                                <SidebarMenuButton asChild>
+                                    <Link to="/chats?new=1">
+                                        <Plus className="size-4" />
+                                        <span>New chat</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    onClick={() => openNewFolderDialog(null)}
+                                >
+                                    <FolderPlus className="size-4" />
+                                    <span>New folder</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </SidebarMenu>
                         <RootDropZone />
-                        <SidebarMenu>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild>
-                                <Link to="/chats?new=1">
-                                    <Plus className="size-4" />
-                                    <span>New chat</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
+                        <SidebarMenu className="gap-1">
                         {rootFolders.map((f) => (
                             <ChatsSidebarFolderItem
                                 key={f.id}
                                 folder={f}
                                 depth={0}
-                                expandedFolders={expandedFolders}
+                                expandedFolders={expandedFolderIds}
                                 onToggle={toggleFolder}
                                 foldersByParent={store.foldersByParent}
                                 folderChatsByFolderId={
@@ -172,6 +235,7 @@ export function ChatsSidebar() {
                                     store.loadChats(folderId, cursor)
                                 }
                                 onManageOpen={handleManageOpen}
+                                onCreateSubfolder={openNewFolderDialog}
                                 onLoadFolders={(parentId) =>
                                     store.loadFolders(parentId)
                                 }
@@ -217,6 +281,50 @@ export function ChatsSidebar() {
                     onUpdated={() => setManageState(null)}
                 />
             )}
+            <Dialog
+                open={newFolderOpen}
+                onOpenChange={(open) => {
+                    setNewFolderOpen(open);
+                    if (!open) {
+                        setNewFolderName("");
+                        setNewFolderParentId(null);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {newFolderParentId
+                                ? "New subfolder"
+                                : "New folder"}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="new-folder-name">Name</Label>
+                            <Input
+                                id="new-folder-name"
+                                value={newFolderName}
+                                onChange={(e) =>
+                                    setNewFolderName(e.target.value)
+                                }
+                                placeholder="Folder name"
+                                onKeyDown={(e) =>
+                                    e.key === "Enter" && handleCreateFolder()
+                                }
+                            />
+                        </div>
+                        <Button
+                            onClick={handleCreateFolder}
+                            disabled={
+                                !newFolderName.trim() || newFolderCreating
+                            }
+                        >
+                            {newFolderCreating ? "Creating…" : "Create"}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
