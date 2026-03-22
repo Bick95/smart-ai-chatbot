@@ -1,6 +1,6 @@
 # SQL migrations
 
-**`001_initial_schema.sql`** — full schema: auth, chats/folders/messages/permissions, RLS (including `chats_select` / `chat_folders_select` with an owner `CASE` branch so `INSERT … RETURNING` works), `chatbot_app` role, grants.
+**`001_initial_schema.sql`** — full schema: auth, chats/folders/messages/permissions, RLS (including `chats_select` / `chat_folders_select` with an owner `CASE` branch so `INSERT … RETURNING` works), folder helpers `rls_folder_visible` / `rls_folder_visible_for_update` (**owner-only**; chat shares do not grant folder visibility), `chatbot_app` role, grants.
 
 ## Existing database from older migrations
 
