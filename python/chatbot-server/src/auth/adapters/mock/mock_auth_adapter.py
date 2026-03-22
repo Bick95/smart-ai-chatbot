@@ -18,7 +18,7 @@ class MockAuthAdapter:
     async def signup(self, email: str, username: str, password: str) -> AuthUser:
         email_lower = email.lower().strip()
         for u in self._users.values():
-            if u.email == email_lower:
+            if u.user.email == email_lower:
                 raise ValueError("Email already registered")
         user_id = str(uuid4())
         user = AuthUser(
@@ -102,6 +102,20 @@ class MockAuthAdapter:
         if not verify_password(password, stored.password_hash):
             return None
         return user
+
+    async def search_users_by_username(
+        self, query: str, limit: int = 10
+    ) -> list[AuthUser]:
+        q = query.strip().lower()
+        if not q:
+            return []
+        matches = [
+            u.user
+            for u in self._users.values()
+            if q in u.user.username.lower()
+        ]
+        matches.sort(key=lambda u: u.username)
+        return matches[:limit]
 
 
 class _StoredUser:

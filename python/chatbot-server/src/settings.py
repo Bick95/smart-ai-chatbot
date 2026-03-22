@@ -65,6 +65,15 @@ class Settings(BaseSettings):
         default=None,
         description="Postgres connection URL (required when AUTH_PROVIDER=postgres)",
     )
+    MIGRATION_DATABASE_URL: SecretStr | None = Field(
+        default=None,
+        description="Privileged DB URL for migrations (owner/superuser). If unset, migrations "
+        "fall back to DATABASE_URL (not ideal for production).",
+    )
+    RUN_MIGRATIONS_ON_STARTUP: bool = Field(
+        default=True,
+        description="If true, apply SQL migrations once before serving (uses MIGRATION_DATABASE_URL or DATABASE_URL).",
+    )
     SUPABASE_URL: str = Field(
         default="",
         description="Supabase project URL (required when AUTH_PROVIDER=supabase)",
@@ -95,6 +104,16 @@ class Settings(BaseSettings):
     SIGNUP_INVITE_KEY: SecretStr | None = Field(
         default=None,
         description="When set, signup requires this key in the request; omit for open signup",
+    )
+
+    # App data (chats, folders, etc.; hexagonal: postgres or mock)
+    APP_DATA_PROVIDER: str = Field(
+        default="postgres",
+        description="App data adapter: 'postgres' or 'mock' (for tests)",
+    )
+    APP_DATA_DATABASE_URL: SecretStr | None = Field(
+        default=None,
+        description="Postgres URL for app data; used when AUTH_PROVIDER=mock but app data uses Postgres",
     )
 
     # Secrets

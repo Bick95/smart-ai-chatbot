@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncpg
 
 from src.auth.adapters.mock.mock_auth_adapter import MockAuthAdapter
-from src.auth.adapters.postgres.migrations import run_migrations
 from src.auth.adapters.postgres.postgres_auth_adapter import PostgresAuthAdapter
 from src.auth.adapters.supabase.supabase_auth_adapter import SupabaseAuthAdapter
 from src.auth.ports.auth_port import AuthPort
@@ -37,7 +36,6 @@ async def create_auth_adapter() -> tuple[AuthPort, asyncpg.Pool | None]:
             max_size=10,
             command_timeout=60,
         )
-        await run_migrations(pool)
         adapter: AuthPort = PostgresAuthAdapter(pool)
         return adapter, pool
 
