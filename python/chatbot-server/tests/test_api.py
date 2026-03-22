@@ -505,6 +505,60 @@ class TestStatefulChatEndpoints:
         assert len(items) == 1
         assert items[0]["id"] == chat_id
 
+    def test_grantee_cannot_access_owner_folder_even_with_shared_chat(
+        self, client_with_auth_bypass
+    ):
+        """Folder APIs and folder-scoped chat list do not expose another user's folder."""
+        from src.auth.utils.jwt import SubjectPayload, SubjectType
+        from src.server.app import app
+        from src.server.dependencies import get_current_subject
+
+        grantee_id = "660e8400-e29b-41d4-a716-446655440001"
+        grantee_payload = SubjectPayload(
+            subject_type=SubjectType.USER,
+            subject_id=grantee_id,
+        )
+
+        r_folder = client_with_auth_bypass.post(
+            "/api/v1/folders", json={"name": "Owner Only"}
+        )
+        assert r_folder.status_code == 200
+        folder_id = r_folder.json()["id"]
+
+        r_chat = client_with_auth_bypass.post(
+            "/api/v1/chats",
+            json={"folder_id": folder_id, "title": "In folder"},
+        )
+        assert r_chat.status_code == 200
+        chat_id = r_chat.json()["id"]
+
+        r_share = client_with_auth_bypass.post(
+            f"/api/v1/chats/{chat_id}/shares",
+            json={
+                "subject_type": "user",
+                "subject_id": grantee_id,
+                "role": "viewer",
+            },
+        )
+        assert r_share.status_code == 200
+
+        app.dependency_overrides[get_current_subject] = lambda: grantee_payload
+        try:
+            r_get = client_with_auth_bypass.get(f"/api/v1/folders/{folder_id}")
+            assert r_get.status_code == 404
+
+            r_list_root = client_with_auth_bypass.get("/api/v1/folders")
+            assert r_list_root.status_code == 200
+            assert r_list_root.json() == []
+
+            r_scoped = client_with_auth_bypass.get(
+                "/api/v1/chats", params={"folder_id": folder_id}
+            )
+            assert r_scoped.status_code == 200
+            assert r_scoped.json()["items"] == []
+        finally:
+            app.dependency_overrides.clear()
+
     def test_create_folder(self, client_with_auth_bypass):
         """Create folder returns folder with id."""
         response = client_with_auth_bypass.post(

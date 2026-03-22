@@ -80,6 +80,7 @@ ALTER TABLE chat_permissions FORCE ROW LEVEL SECURITY;
 -- -----------------------------------------------------------------------------
 -- RLS helpers (no cross-table policy recursion)
 -- -----------------------------------------------------------------------------
+-- Folder visibility is owner-only. Chat shares do NOT grant access to chat_folders rows.
 CREATE OR REPLACE FUNCTION rls_folder_visible(p_folder_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -93,12 +94,6 @@ AS $$
       SELECT 1 FROM chat_folders f
       WHERE f.id = p_folder_id
         AND f.owner_subject = current_setting('app.current_subject', true)
-    )
-    OR EXISTS (
-      SELECT 1 FROM chats c
-      INNER JOIN chat_permissions cp ON cp.chat_id = c.id
-      WHERE c.folder_id = p_folder_id
-        AND cp.subject = current_setting('app.current_subject', true)
     ),
     false
   );
@@ -117,13 +112,6 @@ AS $$
       SELECT 1 FROM chat_folders f
       WHERE f.id = p_folder_id
         AND f.owner_subject = current_setting('app.current_subject', true)
-    )
-    OR EXISTS (
-      SELECT 1 FROM chats c
-      INNER JOIN chat_permissions cp ON cp.chat_id = c.id
-      WHERE c.folder_id = p_folder_id
-        AND cp.subject = current_setting('app.current_subject', true)
-        AND cp.role = 'editor'
     ),
     false
   );

@@ -304,10 +304,10 @@ class TestMockChatAdapter:
         assert updated.title == chat.title
 
     @pytest.mark.asyncio
-    async def test_get_folder_via_shared_chat(
+    async def test_get_folder_requires_owner_not_shared_chat(
         self, adapter: MockChatAdapter, subject: Subject
     ):
-        """get_folder returns folder when user has access via shared chat in folder."""
+        """Grantee with a shared chat in a folder cannot read the folder; chat access unchanged."""
         from src.app_data.ports.types import ShareRole
 
         owner = subject
@@ -318,9 +318,31 @@ class TestMockChatAdapter:
         folder = await adapter.create_folder(owner, name="Shared Folder")
         chat = await adapter.create_chat(owner, folder_id=folder.id, title="In Folder")
         await adapter.add_share(chat.id, owner, grantee, ShareRole.VIEWER)
-        found = await adapter.get_folder(folder.id, grantee)
-        assert found is not None
-        assert found.name == "Shared Folder"
+        assert await adapter.get_folder(folder.id, grantee) is None
+        assert await adapter.list_folders(grantee, parent_id=None) == []
+        got_chat = await adapter.get_chat(chat.id, grantee)
+        assert got_chat is not None
+        assert got_chat.folder_id == folder.id
+
+    @pytest.mark.asyncio
+    async def test_list_chats_by_folder_requires_folder_ownership(
+        self, adapter: MockChatAdapter, subject: Subject
+    ):
+        """Grantee cannot list chats by another user's folder_id even with shared chat inside."""
+        from src.app_data.ports.types import ShareRole
+
+        owner = subject
+        grantee = Subject(
+            subject_type=SubjectType.USER,
+            subject_id="660e8400-e29b-41d4-a716-446655440001",
+        )
+        folder = await adapter.create_folder(owner, name="F")
+        chat = await adapter.create_chat(owner, folder_id=folder.id, title="Shared")
+        await adapter.add_share(chat.id, owner, grantee, ShareRole.VIEWER)
+        scoped = await adapter.list_chats(grantee, folder_id=folder.id)
+        assert scoped.items == []
+        all_visible = await adapter.list_chats(grantee, folder_id=None)
+        assert any(c.id == chat.id for c in all_visible.items)
 
     @pytest.mark.asyncio
     async def test_remove_share_when_none(self, adapter: MockChatAdapter, subject: Subject):

@@ -83,6 +83,11 @@ class MockChatAdapter:
         limit: int = 50,
         cursor: str | None = None,
     ) -> PaginatedResult[Chat]:
+        if folder_id is not None:
+            folder = self._folders.get(folder_id)
+            if folder is None or folder.owner_subject != subject.to_str():
+                return PaginatedResult(items=[], next_cursor=None)
+
         accessible = [
             c for c in self._chats.values()
             if self._has_access(c.id, subject)
@@ -290,16 +295,11 @@ class MockChatAdapter:
         return folder
 
     def _has_folder_access(self, folder_id: str, subject: Subject) -> bool:
-        """Check if subject can access folder (owner or has access via shared chat)."""
+        """Only the folder owner may access folder rows (not grantees with shared chats)."""
         folder = self._folders.get(folder_id)
         if folder is None:
             return False
-        if folder.owner_subject == subject.to_str():
-            return True
-        for chat in self._chats.values():
-            if chat.folder_id == folder_id and self._has_access(chat.id, subject):
-                return True
-        return False
+        return folder.owner_subject == subject.to_str()
 
     async def list_folders(
         self, subject: Subject, *, parent_id: str | None = None

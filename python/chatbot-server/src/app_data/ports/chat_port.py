@@ -43,7 +43,7 @@ class ChatPort(Protocol):
         limit: int = 50,
         cursor: str | None = None,
     ) -> PaginatedResult[Chat]:
-        """List chats subject owns or has access to. Optionally filter by folder. Paginated."""
+        """List chats the subject can access. If folder_id is set, only the folder owner may list."""
         ...
 
     async def list_chats_shared_with_me(
@@ -110,13 +110,13 @@ class ChatPort(Protocol):
     async def get_folder(
         self, folder_id: Uuid4Str, subject: Subject
     ) -> Folder | None:
-        """Get folder if subject has access. Returns None if not found or no access."""
+        """Get folder if subject is the owner. Shared chats do not grant folder access."""
         ...
 
     async def list_folders(
         self, subject: Subject, *, parent_id: Uuid4Str | None = None
     ) -> list[Folder]:
-        """List folders. parent_id=None for root folders."""
+        """List folders owned by subject. parent_id=None for root folders."""
         ...
 
     async def create_folder(

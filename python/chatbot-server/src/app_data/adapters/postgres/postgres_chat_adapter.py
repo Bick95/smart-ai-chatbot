@@ -158,6 +158,12 @@ class PostgresChatAdapter:
         limit: int = 50,
         cursor: str | None = None,
     ) -> PaginatedResult[Chat]:
+        # Only the folder owner may list chats scoped to a folder (not grantees with shared chats).
+        if folder_id is not None:
+            folder = await self.get_folder(folder_id, subject)
+            if folder is None:
+                return PaginatedResult(items=[], next_cursor=None)
+
         async with _conn_with_subject(self._pool, subject) as conn:
             decoded = _decode_cursor_chat(cursor)
             if decoded:
