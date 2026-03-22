@@ -65,7 +65,7 @@ async def _conn_with_subject(
     async with pool.acquire() as conn:
         async with conn.transaction():
             await conn.execute(
-                "SET LOCAL app.current_subject = $1",
+                "SELECT set_config('app.current_subject', $1, true)",
                 subject.to_str(),
             )
             yield conn

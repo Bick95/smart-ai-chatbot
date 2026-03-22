@@ -220,7 +220,7 @@ export function ResourceManagement({
             value={activeTab}
             onValueChange={(v) => setActiveTab(v as ResourceManagementTab)}
         >
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+            <TabsList className="flex h-auto flex-wrap gap-1 p-1">
                 {tabTriggers.map((t) => (
                     <TabsTrigger key={t.id} value={t.id}>
                         {t.label}
@@ -384,8 +384,9 @@ export function ResourceManagement({
                     </>
                 ) : (
                     <p className="text-muted-foreground text-sm">
-                        Folder permissions coming soon. Permissions apply to
-                        chats within this folder.
+                        Folder-level sharing is not implemented. Permissions are
+                        managed per chat—share individual chats from their
+                        manage menu to grant access.
                     </p>
                 )}
             </TabsContent>
