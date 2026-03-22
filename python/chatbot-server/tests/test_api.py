@@ -542,6 +542,23 @@ class TestStatefulChatEndpoints:
         assert r5.status_code == 200
         assert len(r5.json()) == 0
 
+    def test_add_share_to_self_returns_400(self, client_with_auth_bypass):
+        """Cannot add a share grantee that is the same as the current user."""
+        r1 = client_with_auth_bypass.post("/api/v1/chats", json={})
+        assert r1.status_code == 200
+        chat_id = r1.json()["id"]
+        # Same subject_id as MOCK_SUBJECT in conftest (token user)
+        r2 = client_with_auth_bypass.post(
+            f"/api/v1/chats/{chat_id}/shares",
+            json={
+                "subject_type": "user",
+                "subject_id": "550e8400-e29b-41d4-a716-446655440000",
+                "role": "viewer",
+            },
+        )
+        assert r2.status_code == 400
+        assert "yourself" in r2.json()["detail"].lower()
+
     def test_get_folder(self, client_with_auth_bypass):
         """Get folder returns folder by id."""
         r1 = client_with_auth_bypass.post(

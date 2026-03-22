@@ -75,6 +75,7 @@ export function ResourceManagement({
     const [shareRole, setShareRole] = useState<"viewer" | "editor">("editor");
 
     const store = useStatefulChatStore();
+    const currentUser = useAuthStore((s) => s.user);
     const loadFolder = useStatefulChatStore((s) => s.loadFolder);
     const loadFolders = useStatefulChatStore((s) => s.loadFolders);
     const loadShares = useStatefulChatStore((s) => s.loadShares);
@@ -174,11 +175,17 @@ export function ResourceManagement({
                 10,
                 useAuthStore.getState().authToken ?? undefined
             );
-            setShareSearchResults(users);
+            const filtered = users.filter((u) => {
+                if (currentUser && u.id === currentUser.id) return false;
+                const subject = `user:${u.id}`;
+                if (shares.some((s) => s.subject === subject)) return false;
+                return true;
+            });
+            setShareSearchResults(filtered);
         } catch {
             setShareSearchResults([]);
         }
-    }, [shareSearchQuery]);
+    }, [shareSearchQuery, currentUser, shares]);
 
     const handleAddShare = useCallback(
         async (userId: string) => {

@@ -332,6 +332,11 @@ async def add_share(
     """Add share (owner only)."""
     owner = _subject_from_payload(subject)
     grantee = Subject(subject_type=body.subject_type, subject_id=body.subject_id)
+    if grantee.to_str() == owner.to_str():
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot share a chat with yourself",
+        )
     try:
         share = await chat_port.add_share(chat_id, owner, grantee, body.role)
         return ShareResponseItem(
