@@ -21,6 +21,7 @@ from src.server.middleware import (
     sanitized_exception_handler,
     sanitized_http_exception_handler,
 )
+from src.server.migrations_startup import run_migrations_on_startup
 from src.server.routers.auth import router as auth_router
 from src.server.routers.stateful_chat import (
     folders_router,
@@ -39,6 +40,8 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Create shared clients on startup; agent is created per request."""
     logger.info("Server starting up")
+
+    await run_migrations_on_startup()
 
     logger.info("Creating LLM clients")
     clients = create_clients()

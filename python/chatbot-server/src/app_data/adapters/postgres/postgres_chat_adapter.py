@@ -9,6 +9,12 @@ from uuid import UUID
 
 import asyncpg
 
+# RLS policies use current_setting('app.current_subject'). With asyncpg, a separate
+# execute(set_config) round trip before fetchrow(INSERT/UPDATE ... RETURNING) often
+# leaves policies seeing NULL for that setting (extended query / statement boundaries).
+# Fix: embed set_config in the same SQL statement as the mutation via a WITH clause
+# so PostgreSQL applies the GUC before RLS runs. See _conn_with_subject(prepare_guc=...).
+
 from src.app_data.ports.types import (
     Chat,
     ChatMessage,
@@ -57,22 +63,54 @@ def _encode_cursor_message(created_at: datetime, id_: str) -> str:
     return f"{created_at.isoformat()}|{id_}"
 
 
+def _rls_subject_cte() -> str:
+    """WITH clause: set app.current_subject in the same statement as the rest."""
+    return (
+        "WITH _rls_subject AS ("
+        " SELECT set_config('app.current_subject', $1, false) AS _ "
+        ") "
+    )
+
+
 @asynccontextmanager
 async def _conn_with_subject(
-    pool: asyncpg.Pool, subject: Subject
+    pool: asyncpg.Pool,
+    subject: Subject,
+    *,
+    prepare_guc: bool = True,
 ) -> AsyncIterator[asyncpg.Connection]:
-    """Acquire connection and set RLS session variables."""
+    """Acquire a connection, optionally set ``app.current_subject``, yield, then clear.
+
+    For statements that embed ``set_config`` in SQL (see ``_rls_subject_cte``), pass
+    ``prepare_guc=False`` so we do not run a separate ``set_config`` round trip that
+    asyncpg does not reliably pair with the following ``INSERT/UPDATE ... RETURNING``.
+
+    Postgres policies compare ``owner_subject`` (and helpers) to
+    ``current_setting('app.current_subject')``. Clear the GUC in ``finally`` so pooled
+    connections do not keep another user's subject.
+
+    Do not wrap this in ``async with conn.transaction()`` around set_config + query.
+    """
     async with pool.acquire() as conn:
-        async with conn.transaction():
-            await conn.execute(
-                "SELECT set_config('app.current_subject', $1, true)",
-                subject.to_str(),
-            )
+        try:
+            if prepare_guc:
+                await conn.execute(
+                    "SELECT set_config('app.current_subject', $1, false)",
+                    subject.to_str(),
+                )
             yield conn
+        finally:
+            await conn.execute(
+                "SELECT set_config('app.current_subject', $1, false)",
+                None,
+            )
 
 
 class PostgresChatAdapter:
-    """Chat adapter using Postgres with RLS for RBAC."""
+    """Chat adapter using Postgres with RLS for RBAC.
+
+    Connect with a non-superuser role (e.g. chatbot_app) so RLS is enforced.
+    """
 
     def __init__(self, pool: asyncpg.Pool) -> None:
         self._pool = pool
@@ -84,11 +122,12 @@ class PostgresChatAdapter:
         folder_id: str | None = None,
         title: str | None = None,
     ) -> Chat:
-        async with _conn_with_subject(self._pool, subject) as conn:
+        async with _conn_with_subject(self._pool, subject, prepare_guc=False) as conn:
             row = await conn.fetchrow(
-                """
+                _rls_subject_cte()
+                + """
                 INSERT INTO chats (owner_subject, folder_id, title)
-                VALUES ($1, $2, $3)
+                SELECT $1, $2, $3 FROM _rls_subject
                 RETURNING id, owner_subject, folder_id, title, created_at, updated_at
                 """,
                 subject.to_str(),
@@ -187,13 +226,16 @@ class PostgresChatAdapter:
     async def add_message(
         self, chat_id: str, subject: Subject, role: MessageRole, content: str
     ) -> ChatMessage:
-        async with _conn_with_subject(self._pool, subject) as conn:
+        # CTE sets GUC in same statement as INSERT RETURNING; then UPDATE uses session GUC.
+        async with _conn_with_subject(self._pool, subject, prepare_guc=False) as conn:
             row = await conn.fetchrow(
-                """
+                _rls_subject_cte()
+                + """
                 INSERT INTO chat_messages (chat_id, role, content)
-                VALUES ($1, $2, $3)
+                SELECT $2, $3, $4 FROM _rls_subject
                 RETURNING id, chat_id, role, content, created_at
                 """,
+                subject.to_str(),
                 UUID(chat_id),
                 role,
                 content,
@@ -301,13 +343,15 @@ class PostgresChatAdapter:
     async def add_share(
         self, chat_id: str, owner: Subject, grantee: Subject, role: ShareRole
     ) -> ChatShare:
-        async with _conn_with_subject(self._pool, owner) as conn:
+        async with _conn_with_subject(self._pool, owner, prepare_guc=False) as conn:
             row = await conn.fetchrow(
-                """
+                _rls_subject_cte()
+                + """
                 INSERT INTO chat_permissions (chat_id, subject, role)
-                VALUES ($1, $2, $3)
+                SELECT $2, $3, $4 FROM _rls_subject
                 RETURNING chat_id, subject, role, created_at
                 """,
+                owner.to_str(),
                 UUID(chat_id),
                 grantee.to_str(),
                 role,
@@ -389,11 +433,12 @@ class PostgresChatAdapter:
         parent_id: str | None = None,
         system_prompt: str | None = None,
     ) -> Folder:
-        async with _conn_with_subject(self._pool, subject) as conn:
+        async with _conn_with_subject(self._pool, subject, prepare_guc=False) as conn:
             row = await conn.fetchrow(
-                """
+                _rls_subject_cte()
+                + """
                 INSERT INTO chat_folders (owner_subject, parent_id, name, system_prompt)
-                VALUES ($1, $2, $3, $4)
+                SELECT $1, $2, $3, $4 FROM _rls_subject
                 RETURNING id, owner_subject, parent_id, name, system_prompt, created_at, updated_at
                 """,
                 subject.to_str(),
@@ -464,9 +509,8 @@ class PostgresChatAdapter:
         if parent_id is not None:
             parent_uuid = UUID(parent_id)
             if folder_uuid == parent_uuid:
-                return None  # Cannot move into self
+                return None
             async with _conn_with_subject(self._pool, subject) as conn:
-                # Check parent is not a descendant (would create cycle)
                 descendant = await conn.fetchval(
                     """
                     WITH RECURSIVE descendants AS (
@@ -481,7 +525,7 @@ class PostgresChatAdapter:
                     parent_uuid,
                 )
                 if descendant is not None:
-                    return None  # Would create cycle
+                    return None
         async with _conn_with_subject(self._pool, subject) as conn:
             row = await conn.fetchrow(
                 """
@@ -490,7 +534,7 @@ class PostgresChatAdapter:
                 WHERE id = $2
                 RETURNING id, owner_subject, parent_id, name, system_prompt, created_at, updated_at
                 """,
-                parent_uuid if parent_id else None,
+                UUID(parent_id) if parent_id else None,
                 folder_uuid,
             )
         if row is None:

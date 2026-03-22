@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -12,13 +12,29 @@ import {
     StatefulChatPage,
 } from "@/pages";
 import { useAuthStore } from "@/stores/auth";
+import { useStatefulChatStore } from "@/stores/stateful-chat";
+import { useChatStore } from "@/stores/chat";
 
 export default function App() {
     const hydrate = useAuthStore((s) => s.hydrate);
+    const prevUserIdRef = useRef<string | null>(null);
 
     useEffect(() => {
         hydrate();
     }, [hydrate]);
+
+    useEffect(() => {
+        const unsub = useAuthStore.subscribe(() => {
+            const current = useAuthStore.getState().user?.id ?? null;
+            if (current !== prevUserIdRef.current) {
+                prevUserIdRef.current = current;
+                useStatefulChatStore.getState().reset();
+                useChatStore.getState().resetTemporaryChat();
+            }
+        });
+        prevUserIdRef.current = useAuthStore.getState().user?.id ?? null;
+        return unsub;
+    }, []);
 
     return (
         <BrowserRouter>

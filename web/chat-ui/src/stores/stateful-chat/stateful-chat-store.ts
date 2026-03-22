@@ -48,6 +48,8 @@ interface StatefulChatActions {
     ensureFolderExpanded: (folderId: string) => void;
     setError: (error: string | null) => void;
     clearError: () => void;
+    /** Clear all user data. Call on logout or when user changes. */
+    reset: () => void;
 }
 
 const EXPANDED_FOLDERS_KEY = "chats-sidebar-expanded-folders";
@@ -643,4 +645,29 @@ export const useStatefulChatStore = create<
 
     setError: (error) => set({ error }),
     clearError: () => set({ error: null }),
+
+    reset: () => {
+        set({
+            chats: {},
+            currentChatId: null,
+            folders: [],
+            foldersByParent: {},
+            currentFolder: null,
+            recentChats: [],
+            recentChatsNextCursor: null,
+            messagesByChatId: {},
+            folderChatsByFolderId: {},
+            sharesByChatId: {},
+            isLoading: false,
+            error: null,
+        });
+        if (typeof sessionStorage !== "undefined") {
+            try {
+                sessionStorage.removeItem(EXPANDED_FOLDERS_KEY);
+            } catch {
+                // ignore
+            }
+        }
+        set({ expandedFolderIds: new Set() });
+    },
 }));

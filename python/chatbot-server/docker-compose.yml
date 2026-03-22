@@ -1,4 +1,6 @@
-# Postgres for local testing (used by run_test_server.sh)
+# Postgres for local testing.
+# Default user "chatbot" is superuser — use only for MIGRATION_DATABASE_URL / scripts/run_migrations.py.
+# Runtime app should use DATABASE_URL=postgresql://chatbot_app:chatbot@... (created by migration 004).
 services:
   postgres:
     image: postgres:16-alpine

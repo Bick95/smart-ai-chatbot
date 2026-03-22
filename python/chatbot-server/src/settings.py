@@ -65,6 +65,15 @@ class Settings(BaseSettings):
         default=None,
         description="Postgres connection URL (required when AUTH_PROVIDER=postgres)",
     )
+    MIGRATION_DATABASE_URL: SecretStr | None = Field(
+        default=None,
+        description="Privileged DB URL for migrations (owner/superuser). If unset, migrations "
+        "fall back to DATABASE_URL (not ideal for production).",
+    )
+    RUN_MIGRATIONS_ON_STARTUP: bool = Field(
+        default=True,
+        description="If true, apply SQL migrations once before serving (uses MIGRATION_DATABASE_URL or DATABASE_URL).",
+    )
     SUPABASE_URL: str = Field(
         default="",
         description="Supabase project URL (required when AUTH_PROVIDER=supabase)",

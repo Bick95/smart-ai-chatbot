@@ -9,7 +9,6 @@ from src.app_data.adapters.postgres.postgres_chat_adapter import (
     PostgresChatAdapter,
 )
 from src.app_data.ports.chat_port import ChatPort
-from src.auth.adapters.postgres.migrations import run_migrations
 from src.settings import settings
 
 
@@ -62,7 +61,6 @@ async def create_chat_adapter(
 
     if provider == "postgres":
         pool, owns_pool = await _get_app_data_pool(existing_pool)
-        await run_migrations(pool)
         adapter: ChatPort = PostgresChatAdapter(pool)
         return adapter, pool if owns_pool else None
 
