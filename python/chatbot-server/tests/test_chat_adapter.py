@@ -212,6 +212,30 @@ class TestMockChatAdapter:
         assert second.items[0].id != first.items[0].id
 
     @pytest.mark.asyncio
+    async def test_list_chats_shared_with_me(
+        self, adapter: MockChatAdapter, subject: Subject
+    ):
+        """list_chats_shared_with_me returns only chats shared with subject (not owned)."""
+        from src.app_data.ports.types import ShareRole
+
+        owner = subject
+        grantee = Subject(
+            subject_type=SubjectType.USER,
+            subject_id="660e8400-e29b-41d4-a716-446655440001",
+        )
+        await adapter.create_chat(owner, title="Mine")
+        shared = await adapter.create_chat(owner, title="Shared with grantee")
+        await adapter.add_share(shared.id, owner, grantee, ShareRole.VIEWER)
+
+        mine_page = await adapter.list_chats_shared_with_me(owner)
+        assert mine_page.items == []
+
+        grantee_page = await adapter.list_chats_shared_with_me(grantee)
+        assert len(grantee_page.items) == 1
+        assert grantee_page.items[0].id == shared.id
+        assert grantee_page.items[0].title == "Shared with grantee"
+
+    @pytest.mark.asyncio
     async def test_get_chat_with_share_access(
         self, adapter: MockChatAdapter, subject: Subject
     ):

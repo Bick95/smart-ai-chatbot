@@ -46,6 +46,16 @@ class ChatPort(Protocol):
         """List chats subject owns or has access to. Optionally filter by folder. Paginated."""
         ...
 
+    async def list_chats_shared_with_me(
+        self,
+        subject: Subject,
+        *,
+        limit: int = 50,
+        cursor: str | None = None,
+    ) -> PaginatedResult[Chat]:
+        """List chats shared with the subject (access granted but not owner). Flat list; no folder filter."""
+        ...
+
     async def add_message(
         self, chat_id: Uuid4Str, subject: Subject, role: MessageRole, content: str
     ) -> ChatMessage:

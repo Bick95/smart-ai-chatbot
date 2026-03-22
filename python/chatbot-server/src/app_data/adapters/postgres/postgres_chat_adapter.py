@@ -223,6 +223,52 @@ class PostgresChatAdapter:
             )
         return PaginatedResult(items=items, next_cursor=next_cursor)
 
+    async def list_chats_shared_with_me(
+        self,
+        subject: Subject,
+        *,
+        limit: int = 50,
+        cursor: str | None = None,
+    ) -> PaginatedResult[Chat]:
+        """Chats visible to subject where subject is not the owner (shared-inbox view)."""
+        async with _conn_with_subject(self._pool, subject) as conn:
+            decoded = _decode_cursor_chat(cursor)
+            if decoded:
+                cursor_ts, cursor_id = decoded
+                rows = await conn.fetch(
+                    """
+                    SELECT id, owner_subject, folder_id, title, created_at, updated_at
+                    FROM chats
+                    WHERE owner_subject <> current_setting('app.current_subject', true)
+                    AND (updated_at, id) < ($1, $2)
+                    ORDER BY updated_at DESC, id DESC
+                    LIMIT $3
+                    """,
+                    cursor_ts,
+                    UUID(cursor_id),
+                    limit + 1,
+                )
+            else:
+                rows = await conn.fetch(
+                    """
+                    SELECT id, owner_subject, folder_id, title, created_at, updated_at
+                    FROM chats
+                    WHERE owner_subject <> current_setting('app.current_subject', true)
+                    ORDER BY updated_at DESC, id DESC
+                    LIMIT $1
+                    """,
+                    limit + 1,
+                )
+
+        items = [_row_to_chat(r) for r in rows[:limit]]
+        next_cursor = None
+        if len(rows) > limit:
+            last = rows[limit - 1]
+            next_cursor = _encode_cursor_chat(
+                _parse_ts(last["updated_at"]), str(last["id"])
+            )
+        return PaginatedResult(items=items, next_cursor=next_cursor)
+
     async def add_message(
         self, chat_id: str, subject: Subject, role: MessageRole, content: str
     ) -> ChatMessage:

@@ -27,6 +27,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useAuthStore } from "@/stores/auth";
 import { useStatefulChatStore } from "@/stores/stateful-chat";
 import type { ResourceManagementTab } from "@/components/resource-management/ResourceManagement";
 import { ResourceManagement } from "@/components/resource-management/ResourceManagement";
@@ -37,7 +38,7 @@ import {
     DROP_ROOT,
 } from "./ChatsSidebarFolderItem";
 import { Button } from "@/components/ui/button";
-import { FolderPlus, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, FolderPlus, Plus } from "lucide-react";
 
 function RootDropZone() {
     const { setNodeRef, isOver } = useDroppable({
@@ -64,8 +65,16 @@ interface ManageState {
 
 export function ChatsSidebar() {
     const store = useStatefulChatStore();
+    const user = useAuthStore((s) => s.user);
     const loadChats = useStatefulChatStore((s) => s.loadChats);
     const loadFolders = useStatefulChatStore((s) => s.loadFolders);
+    const loadSharedWithMeChats = useStatefulChatStore(
+        (s) => s.loadSharedWithMeChats
+    );
+    const sharedWithMeChats = useStatefulChatStore((s) => s.sharedWithMeChats);
+    const sharedWithMeNextCursor = useStatefulChatStore(
+        (s) => s.sharedWithMeNextCursor
+    );
     const createFolder = useStatefulChatStore((s) => s.createFolder);
     const expandedFolderIds = useStatefulChatStore((s) => s.expandedFolderIds);
     const toggleExpandedFolder = useStatefulChatStore(
@@ -82,15 +91,21 @@ export function ChatsSidebar() {
     );
     const [newFolderName, setNewFolderName] = useState("");
     const [newFolderCreating, setNewFolderCreating] = useState(false);
+    const [sharedWithMeExpanded, setSharedWithMeExpanded] = useState(true);
 
     const rootFolders = store.foldersByParent["root"] ?? [];
-    const rootChats = store.recentChats.filter((c) => !c.folder_id);
+    const rootChats = store.recentChats.filter((c) => {
+        if (c.folder_id) return false;
+        if (!user) return true;
+        return c.owner_subject === `user:${user.id}`;
+    });
     const rootNextCursor = store.recentChatsNextCursor;
 
     useEffect(() => {
         loadChats(null);
         loadFolders(null);
-    }, [loadChats, loadFolders]);
+        loadSharedWithMeChats();
+    }, [loadChats, loadFolders, loadSharedWithMeChats]);
 
     useEffect(() => {
         if (routeFolderId) {
@@ -218,6 +233,57 @@ export function ChatsSidebar() {
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                         </SidebarMenu>
+                        <div className="mb-1">
+                            <button
+                                type="button"
+                                className="flex w-full items-center gap-1 rounded-md px-2 py-1.5 text-left text-muted-foreground text-xs transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                                onClick={() =>
+                                    setSharedWithMeExpanded((e) => !e)
+                                }
+                                aria-expanded={sharedWithMeExpanded}
+                            >
+                                {sharedWithMeExpanded ? (
+                                    <ChevronDown className="size-3.5 shrink-0" />
+                                ) : (
+                                    <ChevronRight className="size-3.5 shrink-0" />
+                                )}
+                                <span className="font-medium">
+                                    Shared with me
+                                </span>
+                            </button>
+                            {sharedWithMeExpanded && (
+                                <SidebarMenu className="gap-1 mt-0.5">
+                                    {sharedWithMeChats.map((c) => (
+                                        <ChatsSidebarChatItem
+                                            key={c.id}
+                                            chat={c}
+                                            depth={0}
+                                            onManageOpen={handleManageOpen}
+                                        />
+                                    ))}
+                                    {sharedWithMeChats.length === 0 && (
+                                        <p className="px-2 py-1 text-muted-foreground text-xs">
+                                            No chats shared with you yet.
+                                        </p>
+                                    )}
+                                    {sharedWithMeNextCursor && (
+                                        <SidebarMenuItem>
+                                            <button
+                                                type="button"
+                                                className="text-muted-foreground w-full px-2 py-1 text-left text-sm hover:underline"
+                                                onClick={() =>
+                                                    loadSharedWithMeChats(
+                                                        sharedWithMeNextCursor
+                                                    )
+                                                }
+                                            >
+                                                Load more
+                                            </button>
+                                        </SidebarMenuItem>
+                                    )}
+                                </SidebarMenu>
+                            )}
+                        </div>
                         <RootDropZone />
                         <SidebarMenu className="gap-1">
                         {rootFolders.map((f) => (

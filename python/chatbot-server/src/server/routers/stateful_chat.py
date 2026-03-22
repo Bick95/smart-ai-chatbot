@@ -143,6 +143,24 @@ async def list_chats(
     )
 
 
+@router.get("/shared-with-me", response_model=ChatListResponse)
+async def list_chats_shared_with_me(
+    limit: int = Query(default=50, ge=1, le=100),
+    cursor: str | None = Query(default=None),
+    chat_port: ChatPort = Depends(get_chat_port),
+    subject: SubjectPayload = Depends(get_current_subject),
+) -> ChatListResponse:
+    """List chats shared with the current user (flat; not grouped by owner's folders)."""
+    subj = _subject_from_payload(subject)
+    result = await chat_port.list_chats_shared_with_me(
+        subj, limit=limit, cursor=cursor
+    )
+    return ChatListResponse(
+        items=[_chat_to_response(c) for c in result.items],
+        next_cursor=result.next_cursor,
+    )
+
+
 @router.get("/{chat_id}", response_model=ChatResponseItem)
 async def get_chat(
     chat_id: str,

@@ -4,7 +4,6 @@ import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ChatUI } from "@/components/chat";
-import type { Message } from "@/stores/chat";
 import { useStatefulChatStore } from "@/stores/stateful-chat";
 
 export interface StatefulNewChatComposerProps {

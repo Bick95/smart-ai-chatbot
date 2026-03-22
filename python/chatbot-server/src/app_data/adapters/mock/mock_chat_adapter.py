@@ -104,6 +104,48 @@ class MockChatAdapter:
         next_cursor = page[limit].id if len(page) > limit else None
         return PaginatedResult(items=items, next_cursor=next_cursor)
 
+    async def list_chats_shared_with_me(
+        self,
+        subject: Subject,
+        *,
+        limit: int = 50,
+        cursor: str | None = None,
+    ) -> PaginatedResult[Chat]:
+        """Chats the subject can open but does not own (shared with me)."""
+        me = subject.to_str()
+        shared = [
+            c
+            for c in self._chats.values()
+            if c.owner_subject != me and self._has_access(c.id, subject)
+        ]
+        shared.sort(key=lambda c: (c.updated_at, str(c.id)), reverse=True)
+
+        start = 0
+        if cursor and "|" in cursor:
+            parts = cursor.split("|", 1)
+            try:
+                ts = datetime.fromisoformat(parts[0].replace("Z", "+00:00"))
+                cid = parts[1]
+            except (ValueError, TypeError):
+                start = len(shared)
+            else:
+                key = (ts, cid)
+                for i, c in enumerate(shared):
+                    cur = (c.updated_at, str(c.id))
+                    if cur < key:
+                        start = i
+                        break
+                else:
+                    start = len(shared)
+
+        page = shared[start : start + limit + 1]
+        items = page[:limit]
+        next_cursor = None
+        if len(page) > limit:
+            last = page[limit - 1]
+            next_cursor = f"{last.updated_at.isoformat()}|{last.id}"
+        return PaginatedResult(items=items, next_cursor=next_cursor)
+
     async def add_message(
         self, chat_id: str, subject: Subject, role: MessageRole, content: str
     ) -> ChatMessage:

@@ -87,6 +87,24 @@ export async function listChats(
     return chatListResponseSchema.parse(json);
 }
 
+export interface ListChatsSharedWithMeParams {
+    limit?: number;
+    cursor?: string | null;
+}
+
+export async function listChatsSharedWithMe(
+    params: ListChatsSharedWithMeParams,
+    token?: string
+): Promise<ChatListResponse> {
+    const search = new URLSearchParams();
+    if (params.limit != null) search.set("limit", String(params.limit));
+    if (params.cursor != null) search.set("cursor", params.cursor);
+    const qs = search.toString();
+    const url = `${API_BASE}/api/v1/chats/shared-with-me${qs ? `?${qs}` : ""}`;
+    const json = await fetchJson<unknown>(url, { method: "GET" }, token);
+    return chatListResponseSchema.parse(json);
+}
+
 export async function getChat(
     chatId: string,
     token?: string

@@ -469,6 +469,42 @@ class TestStatefulChatEndpoints:
         assert "items" in data
         assert isinstance(data["items"], list)
 
+    def test_list_chats_shared_with_me(self, client_with_auth_bypass):
+        """Owner sees no shared-with-me rows; grantee sees shared chats flat."""
+        from src.auth.utils.jwt import SubjectPayload, SubjectType
+        from src.server.app import app
+        from src.server.dependencies import get_current_subject
+
+        grantee_id = "660e8400-e29b-41d4-a716-446655440001"
+        grantee_payload = SubjectPayload(
+            subject_type=SubjectType.USER,
+            subject_id=grantee_id,
+        )
+
+        r0 = client_with_auth_bypass.get("/api/v1/chats/shared-with-me")
+        assert r0.status_code == 200
+        assert r0.json()["items"] == []
+
+        r1 = client_with_auth_bypass.post("/api/v1/chats", json={})
+        assert r1.status_code == 200
+        chat_id = r1.json()["id"]
+        r2 = client_with_auth_bypass.post(
+            f"/api/v1/chats/{chat_id}/shares",
+            json={
+                "subject_type": "user",
+                "subject_id": grantee_id,
+                "role": "viewer",
+            },
+        )
+        assert r2.status_code == 200
+
+        app.dependency_overrides[get_current_subject] = lambda: grantee_payload
+        r3 = client_with_auth_bypass.get("/api/v1/chats/shared-with-me")
+        assert r3.status_code == 200
+        items = r3.json()["items"]
+        assert len(items) == 1
+        assert items[0]["id"] == chat_id
+
     def test_create_folder(self, client_with_auth_bypass):
         """Create folder returns folder with id."""
         response = client_with_auth_bypass.post(

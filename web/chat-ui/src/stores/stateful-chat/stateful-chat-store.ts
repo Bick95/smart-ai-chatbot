@@ -17,6 +17,9 @@ interface StatefulChatState {
     currentFolder: FolderResponseItem | null;
     recentChats: ChatResponseItem[];
     recentChatsNextCursor: string | null;
+    /** Chats shared with the current user (flat list; not grouped by owner's folders). */
+    sharedWithMeChats: ChatResponseItem[];
+    sharedWithMeNextCursor: string | null;
     messagesByChatId: Record<string, { items: ChatMessageResponseItem[]; nextCursor: string | null }>;
     folderChatsByFolderId: Record<string, { items: ChatResponseItem[]; nextCursor: string | null }>;
     sharesByChatId: Record<string, ShareResponseItem[]>;
@@ -29,6 +32,7 @@ interface StatefulChatActions {
     createChat: (folderId?: string | null, title?: string | null) => Promise<ChatResponseItem>;
     selectChat: (id: string | null) => void;
     loadChats: (folderId?: string | null, cursor?: string | null) => Promise<void>;
+    loadSharedWithMeChats: (cursor?: string | null) => Promise<void>;
     loadFolders: (parentId?: string | null) => Promise<FolderResponseItem[]>;
     loadFolder: (folderId: string) => Promise<FolderResponseItem | null>;
     loadMessages: (chatId: string, cursor?: string | null) => Promise<void>;
@@ -94,6 +98,8 @@ export const useStatefulChatStore = create<
     currentFolder: null,
     recentChats: [],
     recentChatsNextCursor: null,
+    sharedWithMeChats: [],
+    sharedWithMeNextCursor: null,
     messagesByChatId: {},
     folderChatsByFolderId: {},
     sharesByChatId: {},
@@ -208,6 +214,36 @@ export const useStatefulChatStore = create<
             set({
                 isLoading: false,
                 error: e instanceof Error ? e.message : "Failed to load chats",
+            });
+        }
+    },
+
+    loadSharedWithMeChats: async (cursor?: string | null) => {
+        set({ isLoading: true, error: null });
+        try {
+            const res = await api.listChatsSharedWithMe(
+                { cursor: cursor ?? undefined, limit: 50 },
+                getToken()
+            );
+            const byId = { ...get().chats };
+            for (const c of res.items) {
+                byId[c.id] = c;
+            }
+            set((s) => ({
+                chats: byId,
+                sharedWithMeChats: cursor
+                    ? [...s.sharedWithMeChats, ...res.items]
+                    : res.items,
+                sharedWithMeNextCursor: res.next_cursor ?? null,
+                isLoading: false,
+            }));
+        } catch (e) {
+            set({
+                isLoading: false,
+                error:
+                    e instanceof Error
+                        ? e.message
+                        : "Failed to load shared chats",
             });
         }
     },
@@ -655,6 +691,8 @@ export const useStatefulChatStore = create<
             currentFolder: null,
             recentChats: [],
             recentChatsNextCursor: null,
+            sharedWithMeChats: [],
+            sharedWithMeNextCursor: null,
             messagesByChatId: {},
             folderChatsByFolderId: {},
             sharesByChatId: {},
