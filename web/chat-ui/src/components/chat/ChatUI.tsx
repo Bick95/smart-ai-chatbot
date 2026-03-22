@@ -31,6 +31,15 @@ export interface ChatUIProps {
     onLoadOlder?: () => void;
     /** Cursor for loading older messages; when set, onLoadOlder can fetch more. */
     hasOlderMessages?: boolean;
+    /** "full" = main chat view; "inline" = compact embedding (e.g. above folder chat list). */
+    variant?: "full" | "inline";
+    /** Placeholder for the message input. */
+    placeholder?: string;
+    /**
+     * Subtext shown when there are no messages.
+     * Only set for temporary chat (stateless); omit for stateful chats.
+     */
+    emptyStateSubtext?: string;
 }
 
 export function ChatUI({
@@ -43,6 +52,9 @@ export function ChatUI({
     createChatIfNeeded,
     onLoadOlder,
     hasOlderMessages,
+    variant = "full",
+    placeholder = "Message ChatGPT...",
+    emptyStateSubtext,
 }: ChatUIProps) {
     const viewportRef = useRef<HTMLDivElement>(null);
 
@@ -71,14 +83,30 @@ export function ChatUI({
         [onSendMessage],
     );
 
+    const isInline = variant === "inline";
+
     return (
-        <div className="flex min-h-0 flex-1 flex-col bg-background">
-            <main className="flex flex-1 flex-col overflow-hidden">
+        <div
+            className={
+                isInline
+                    ? "flex min-h-[200px] flex-col bg-background"
+                    : "flex min-h-0 flex-1 flex-col bg-background"
+            }
+        >
+            <main
+                className={
+                    isInline
+                        ? "flex flex-col overflow-hidden"
+                        : "flex flex-1 flex-col overflow-hidden"
+                }
+            >
                 <ScrollArea
-                    className="min-h-0 flex-1"
+                    className={isInline ? "min-h-0" : "min-h-0 flex-1"}
                     viewportRef={viewportRef}
                 >
-                    <div className="mx-auto flex max-w-3xl flex-col gap-2 px-4 py-6">
+                    <div
+                        className={`mx-auto flex max-w-3xl flex-col gap-2 px-4 ${isInline ? "py-4" : "py-6"}`}
+                    >
                         {hasOlderMessages && onLoadOlder && (
                             <div className="flex justify-center py-2">
                                 <button
@@ -91,15 +119,23 @@ export function ChatUI({
                             </div>
                         )}
                         {messages.length === 0 && !isLoading && !error ? (
-                            <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-                                <h2 className="text-2xl font-semibold">
+                            <div
+                                className={`flex flex-col items-center justify-center gap-4 text-center ${isInline ? "py-8" : "py-16"}`}
+                            >
+                                <h2
+                                    className={
+                                        isInline
+                                            ? "text-lg font-semibold"
+                                            : "text-2xl font-semibold"
+                                    }
+                                >
                                     How can I help you today?
                                 </h2>
-                                <p className="text-muted-foreground max-w-md text-sm">
-                                    Send a message to get started. Conversations
-                                    are stored locally and sent to the backend
-                                    for AI responses.
-                                </p>
+                                {emptyStateSubtext && (
+                                    <p className="text-muted-foreground max-w-md text-sm">
+                                        {emptyStateSubtext}
+                                    </p>
+                                )}
                             </div>
                         ) : (
                             <ItemGroup className="gap-2">
@@ -135,11 +171,13 @@ export function ChatUI({
                 </ScrollArea>
 
                 <div className="shrink-0 border-t border-border bg-background">
-                    <div className="mx-auto max-w-3xl px-4 py-4">
+                    <div
+                        className={`mx-auto max-w-3xl px-4 ${isInline ? "py-3" : "py-4"}`}
+                    >
                         <ChatInput
                             onSubmit={handleSubmit}
                             disabled={isLoading || isRetrying}
-                            placeholder="Message ChatGPT..."
+                            placeholder={placeholder}
                         />
                     </div>
                 </div>

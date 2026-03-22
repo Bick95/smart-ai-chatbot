@@ -94,6 +94,7 @@ export function ChatPage() {
             onRetry={onRetry}
             isRetrying={isRetrying}
             createChatIfNeeded={createChatIfNeeded}
+            emptyStateSubtext="Send a message to get started. Conversations are stored locally and sent to the backend for AI responses."
         />
     );
 }

@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 import {
     ResourceManagement,
     type ResourceManagementTab,
 } from "@/components/resource-management/ResourceManagement";
+import { StatefulNewChatComposer } from "@/components/chat";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -17,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/stores/auth";
 import { useStatefulChatStore } from "@/stores/stateful-chat";
-import { MoreHorizontal, MessageSquarePlus } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 
 function isOwner(ownerSubject: string): boolean {
     const user = useAuthStore.getState().user;
@@ -27,7 +28,6 @@ function isOwner(ownerSubject: string): boolean {
 
 export function FolderViewPage() {
     const { folderId } = useParams<{ folderId: string }>();
-    const navigate = useNavigate();
     const [manageOpenForChat, setManageOpenForChat] = useState<{
         chatId: string;
         defaultTab: ResourceManagementTab;
@@ -48,11 +48,6 @@ export function FolderViewPage() {
         }
     }, [folderId, loadFolder, loadChats]);
 
-    const handleNewChatInFolder = () => {
-        if (folderId) {
-            navigate(`/chats?new=1&folderId=${folderId}`);
-        }
-    };
 
     if (!folderId) {
         return (
@@ -92,19 +87,17 @@ export function FolderViewPage() {
 
                 <TabsContent
                     value="chats"
-                    className="min-h-0 flex-1 overflow-auto pt-4"
+                    className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto pt-4"
                 >
-                    <div className="space-y-4">
-                        {isOwner(folder?.owner_subject ?? "") && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleNewChatInFolder}
-                            >
-                                <MessageSquarePlus className="mr-2 size-4" />
-                                New chat in folder
-                            </Button>
-                        )}
+                    {isOwner(folder?.owner_subject ?? "") && (
+                        <div className="shrink-0 border-b border-border pb-4">
+                            <StatefulNewChatComposer
+                                folderId={folderId}
+                                variant="inline"
+                            />
+                        </div>
+                    )}
+                    <div className="space-y-2">
                         <ul className="space-y-2">
                             {folderChats.items.map((chat) => (
                                 <li

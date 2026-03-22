@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import { ChatUI } from "@/components/chat";
+import { ChatUI, StatefulNewChatComposer } from "@/components/chat";
 import type { Message } from "@/stores/chat";
 import { useAuthStore } from "@/stores/auth";
 import { useStatefulChatStore } from "@/stores/stateful-chat";
@@ -85,15 +85,15 @@ export function StatefulChatPage() {
     );
 
     const [manageOpen, setManageOpen] = useState(false);
-    const showEmptyState = !chatId && !isNewChat;
+    const showNewChatComposer = !chatId || isNewChat;
 
-    if (showEmptyState) {
+    if (showNewChatComposer) {
         return (
-            <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-                <h2 className="text-2xl font-semibold">Chats</h2>
-                <p className="text-muted-foreground max-w-md text-sm">
-                    Create a chat or select one from the list to get started.
-                </p>
+            <div className="flex min-h-0 flex-1 flex-col">
+                <StatefulNewChatComposer
+                    folderId={folderIdParam ?? null}
+                    variant="full"
+                />
             </div>
         );
     }
