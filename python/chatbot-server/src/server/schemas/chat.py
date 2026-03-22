@@ -170,6 +170,10 @@ class ShareResponseItem(BaseModel):
     )
     role: ShareRole
     created_at: str
+    username: str | None = Field(
+        default=None,
+        description="Resolved display name for user grantees; null if unknown or non-user subject",
+    )
 
 
 class FolderCreateRequest(BaseModel):

@@ -79,6 +79,7 @@ export const shareResponseItemSchema = z.object({
     subject: z.string(),
     role: z.enum(["viewer", "editor"]),
     created_at: z.string(),
+    username: z.string().nullable().optional(),
 });
 export type ShareResponseItem = z.infer<typeof shareResponseItemSchema>;
 

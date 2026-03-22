@@ -16,6 +16,7 @@ from src.app_data.ports.types import (
     MessageRole,
     Subject,
     SubjectType,
+    parse_subject_str,
 )
 from src.auth.ports.auth_port import AuthPort
 from src.auth.utils.jwt import SubjectPayload
@@ -51,6 +52,18 @@ from src.utils.messages import to_langchain_messages
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/chats", tags=["chats"])
+
+
+async def _username_for_share_subject(auth: AuthPort, subject_str: str) -> str | None:
+    """Resolve display username for ``user:uuid`` grantees; other subjects return None."""
+    try:
+        stype, sid = parse_subject_str(subject_str)
+    except ValueError:
+        return None
+    if stype != SubjectType.USER.value:
+        return None
+    user = await auth.get_user_by_id(sid)
+    return user.username if user else None
 
 
 def _subject_from_payload(payload: SubjectPayload) -> Subject:
@@ -301,6 +314,7 @@ async def add_message(
 async def list_shares(
     chat_id: str,
     chat_port: ChatPort = Depends(get_chat_port),
+    auth: AuthPort = Depends(get_auth),
     subject: SubjectPayload = Depends(get_current_subject),
 ) -> list[ShareResponseItem]:
     """List shares for a chat (owner only)."""
@@ -311,15 +325,19 @@ async def list_shares(
     if c.owner_subject != subj.to_str():
         raise HTTPException(status_code=403, detail="Only the owner can list shares")
     shares = await chat_port.list_shares(chat_id, subj)
-    return [
-        ShareResponseItem(
-            chat_id=s.chat_id,
-            subject=s.subject,
-            role=s.role,
-            created_at=s.created_at.isoformat(),
+    items: list[ShareResponseItem] = []
+    for s in shares:
+        username = await _username_for_share_subject(auth, s.subject)
+        items.append(
+            ShareResponseItem(
+                chat_id=s.chat_id,
+                subject=s.subject,
+                role=s.role,
+                created_at=s.created_at.isoformat(),
+                username=username,
+            )
         )
-        for s in shares
-    ]
+    return items
 
 
 @router.post("/{chat_id}/shares", response_model=ShareResponseItem)
@@ -327,6 +345,7 @@ async def add_share(
     chat_id: str,
     body: ShareRequest,
     chat_port: ChatPort = Depends(get_chat_port),
+    auth: AuthPort = Depends(get_auth),
     subject: SubjectPayload = Depends(get_current_subject),
 ) -> ShareResponseItem:
     """Add share (owner only)."""
@@ -339,11 +358,13 @@ async def add_share(
         )
     try:
         share = await chat_port.add_share(chat_id, owner, grantee, body.role)
+        username = await _username_for_share_subject(auth, share.subject)
         return ShareResponseItem(
             chat_id=share.chat_id,
             subject=share.subject,
             role=share.role,
             created_at=share.created_at.isoformat(),
+            username=username,
         )
     except PermissionError:
         raise HTTPException(status_code=403, detail="Not the chat owner")

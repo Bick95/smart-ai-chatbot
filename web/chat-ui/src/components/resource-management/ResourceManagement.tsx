@@ -300,7 +300,12 @@ export function ResourceManagement({
                                                 key={s.subject}
                                                 className="flex items-center justify-between text-sm"
                                             >
-                                                <span>{s.subject}</span>
+                                                <span
+                                                    className="truncate"
+                                                    title={s.subject}
+                                                >
+                                                    {s.username ?? s.subject}
+                                                </span>
                                                 <span className="text-muted-foreground">
                                                     {s.role}
                                                 </span>
