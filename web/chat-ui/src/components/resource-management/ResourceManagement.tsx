@@ -99,7 +99,12 @@ export function ResourceManagement({
     }, [defaultTab]);
 
     useEffect(() => {
-        setNameValue(resourceName || chat?.title || folder?.name || "");
+        // Prefer store (chat / folder) so renames reflect immediately; resourceName is often stale after save.
+        setNameValue(
+            resourceType === "chat"
+                ? (chat?.title ?? resourceName ?? "")
+                : (folder?.name ?? resourceName ?? "")
+        );
         setSystemPromptValue(folder?.system_prompt ?? "");
         setParentId(
             resourceType === "chat"

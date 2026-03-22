@@ -379,6 +379,12 @@ export const useStatefulChatStore = create<
                                   c.id === chatId ? updatedChat : c
                               )
                             : s.recentChats,
+                    sharedWithMeChats:
+                        updatedChat
+                            ? s.sharedWithMeChats.map((c) =>
+                                  c.id === chatId ? updatedChat : c
+                              )
+                            : s.sharedWithMeChats,
                     folderChatsByFolderId: folderChats,
                     isLoading: false,
                 };
@@ -396,14 +402,61 @@ export const useStatefulChatStore = create<
     updateChat: async (chatId, updates) => {
         set({ isLoading: true, error: null });
         try {
+            const prevChat = get().chats[chatId];
             const chat = await api.updateChat(chatId, updates, getToken());
-            set((s) => ({
-                chats: { ...s.chats, [chat.id]: chat },
-                recentChats: s.recentChats.map((c) =>
-                    c.id === chatId ? chat : c
-                ),
-                isLoading: false,
-            }));
+            set((s) => {
+                const oldF = prevChat?.folder_id ?? null;
+                const newF = chat.folder_id ?? null;
+                let folderChatsByFolderId = { ...s.folderChatsByFolderId };
+
+                if (oldF !== newF) {
+                    if (oldF) {
+                        const b = folderChatsByFolderId[oldF];
+                        if (b) {
+                            folderChatsByFolderId[oldF] = {
+                                ...b,
+                                items: (b.items ?? []).filter(
+                                    (c) => c.id !== chatId
+                                ),
+                            };
+                        }
+                    }
+                    if (newF) {
+                        const b = folderChatsByFolderId[newF];
+                        const rest = (b?.items ?? []).filter(
+                            (c) => c.id !== chatId
+                        );
+                        folderChatsByFolderId[newF] = {
+                            items: [chat, ...rest],
+                            nextCursor: b?.nextCursor ?? null,
+                        };
+                    }
+                } else {
+                    for (const key of Object.keys(folderChatsByFolderId)) {
+                        const b = folderChatsByFolderId[key];
+                        const items = b?.items ?? [];
+                        if (!items.some((c) => c.id === chatId)) continue;
+                        folderChatsByFolderId[key] = {
+                            ...b,
+                            items: items.map((c) =>
+                                c.id === chatId ? chat : c
+                            ),
+                        };
+                    }
+                }
+
+                return {
+                    chats: { ...s.chats, [chat.id]: chat },
+                    recentChats: s.recentChats.map((c) =>
+                        c.id === chatId ? chat : c
+                    ),
+                    sharedWithMeChats: s.sharedWithMeChats.map((c) =>
+                        c.id === chatId ? chat : c
+                    ),
+                    folderChatsByFolderId,
+                    isLoading: false,
+                };
+            });
             return chat;
         } catch (e) {
             set({
@@ -440,6 +493,9 @@ export const useStatefulChatStore = create<
                     folderChatsByFolderId: folderChats,
                     currentChatId: s.currentChatId === chatId ? null : s.currentChatId,
                     recentChats: s.recentChats.filter((c) => c.id !== chatId),
+                    sharedWithMeChats: s.sharedWithMeChats.filter(
+                        (c) => c.id !== chatId
+                    ),
                     isLoading: false,
                 };
             });
@@ -479,6 +535,9 @@ export const useStatefulChatStore = create<
                     chats: { ...s.chats, [chat.id]: chat },
                     folderChatsByFolderId: folderChats,
                     recentChats: s.recentChats.map((c) =>
+                        c.id === chatId ? chat : c
+                    ),
+                    sharedWithMeChats: s.sharedWithMeChats.map((c) =>
                         c.id === chatId ? chat : c
                     ),
                     isLoading: false,
@@ -540,9 +599,19 @@ export const useStatefulChatStore = create<
                         f.id === folderId ? folder : f
                     );
                 }
+                const folders =
+                    s.folders.length > 0
+                        ? s.folders.map((f) =>
+                              f.id === folderId ? folder : f
+                          )
+                        : s.folders;
                 return {
                     foldersByParent: byParent,
-                    currentFolder: s.currentFolder?.id === folderId ? folder : s.currentFolder,
+                    folders,
+                    currentFolder:
+                        s.currentFolder?.id === folderId
+                            ? folder
+                            : s.currentFolder,
                     isLoading: false,
                 };
             });
