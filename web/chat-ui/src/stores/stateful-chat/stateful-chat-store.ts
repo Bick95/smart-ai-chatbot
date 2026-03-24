@@ -407,7 +407,7 @@ export const useStatefulChatStore = create<
             set((s) => {
                 const oldF = prevChat?.folder_id ?? null;
                 const newF = chat.folder_id ?? null;
-                let folderChatsByFolderId = { ...s.folderChatsByFolderId };
+                const folderChatsByFolderId = { ...s.folderChatsByFolderId };
 
                 if (oldF !== newF) {
                     if (oldF) {
@@ -473,8 +473,10 @@ export const useStatefulChatStore = create<
             const chat = get().chats[chatId];
             await api.deleteChat(chatId, getToken());
             set((s) => {
-                const { [chatId]: _, ...chats } = s.chats;
-                const { [chatId]: __, ...msgs } = s.messagesByChatId;
+                const chats = { ...s.chats };
+                delete chats[chatId];
+                const msgs = { ...s.messagesByChatId };
+                delete msgs[chatId];
                 const folderId = chat?.folder_id ?? null;
                 const folderChats = folderId
                     ? {

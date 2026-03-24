@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -92,7 +92,10 @@ export function ResourceManagement({
             ? chat?.owner_subject
             : folder?.owner_subject ?? "";
     const isOwnerUser = isOwner(ownerSubject ?? "");
-    const shares = store.sharesByChatId[resourceId] ?? [];
+    const shares = useMemo(
+        () => store.sharesByChatId[resourceId] ?? [],
+        [store.sharesByChatId, resourceId]
+    );
 
     useEffect(() => {
         setActiveTab(defaultTab);

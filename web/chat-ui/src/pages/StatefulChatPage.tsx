@@ -65,7 +65,7 @@ export function StatefulChatPage() {
         if (chatId && messagesData?.nextCursor) {
             store.loadMessages(chatId, messagesData.nextCursor);
         }
-    }, [chatId, messagesData?.nextCursor, store]);
+    }, [chatId, messagesData, store]);
 
     const handleSendMessage = useCallback(
         async (content: string) => {
@@ -81,7 +81,7 @@ export function StatefulChatPage() {
 
             await store.addMessage(chatId, content, true);
         },
-        [chatId, isNewChat, folderIdParam, store]
+        [chatId, isNewChat, folderIdParam, store, navigate]
     );
 
     const [manageOpen, setManageOpen] = useState(false);

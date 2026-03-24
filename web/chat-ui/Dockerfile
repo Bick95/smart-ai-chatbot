@@ -1,6 +1,7 @@
 # Stage 1: build Vite/React assets. Stage 2: serve static files with nginx (ci.sh --build smoke hits GET /).
+# Use Debian-based Node (not Alpine): Tailwind/lightningcss native bindings match glibc, not musl.
 
-FROM node:22-alpine AS build
+FROM node:22-bookworm-slim AS build
 
 WORKDIR /app
 
