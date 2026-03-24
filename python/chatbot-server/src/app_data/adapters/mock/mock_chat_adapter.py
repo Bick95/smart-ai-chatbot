@@ -89,7 +89,8 @@ class MockChatAdapter:
                 return PaginatedResult(items=[], next_cursor=None)
 
         accessible = [
-            c for c in self._chats.values()
+            c
+            for c in self._chats.values()
             if self._has_access(c.id, subject)
             and (folder_id is None or c.folder_id == folder_id)
         ]
@@ -241,7 +242,7 @@ class MockChatAdapter:
             return False
         del self._chats[chat_id]
         self._messages.pop(chat_id, None)
-        for (cid, subj) in list(self._permissions.keys()):
+        for cid, subj in list(self._permissions.keys()):
             if cid == chat_id:
                 del self._permissions[(cid, subj)]
         return True
@@ -279,14 +280,9 @@ class MockChatAdapter:
         chat = self._chats.get(chat_id)
         if chat is None or chat.owner_subject != owner.to_str():
             return []
-        return [
-            s for (cid, _), s in self._permissions.items()
-            if cid == chat_id
-        ]
+        return [s for (cid, _), s in self._permissions.items() if cid == chat_id]
 
-    async def get_folder(
-        self, folder_id: str, subject: Subject
-    ) -> Folder | None:
+    async def get_folder(self, folder_id: str, subject: Subject) -> Folder | None:
         folder = self._folders.get(folder_id)
         if folder is None:
             return None
@@ -305,7 +301,8 @@ class MockChatAdapter:
         self, subject: Subject, *, parent_id: str | None = None
     ) -> list[Folder]:
         folders = [
-            f for f in self._folders.values()
+            f
+            for f in self._folders.values()
             if f.parent_id == parent_id and self._has_folder_access(f.id, subject)
         ]
         return sorted(folders, key=lambda f: f.name)
@@ -363,9 +360,7 @@ class MockChatAdapter:
         new_system_prompt = folder.system_prompt
         if "system_prompt" in kwargs:
             new_system_prompt = (
-                kwargs["system_prompt"].strip()
-                if kwargs["system_prompt"]
-                else None
+                kwargs["system_prompt"].strip() if kwargs["system_prompt"] else None
             )
         now = _now()
         updated = Folder(
@@ -386,7 +381,9 @@ class MockChatAdapter:
         while current:
             if current.id == ancestor_id:
                 return True
-            current = self._folders.get(current.parent_id) if current.parent_id else None
+            current = (
+                self._folders.get(current.parent_id) if current.parent_id else None
+            )
         return False
 
     async def move_folder_to_parent(

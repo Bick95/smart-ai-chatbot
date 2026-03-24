@@ -191,10 +191,15 @@ class SupabaseAuthAdapter:
                 u_email: str | None = getattr(u, "email", None)
                 if u_email and u_email.lower() == email_lower:
                     u_meta = getattr(u, "user_metadata", {}) or {}
-                    u_username = u_meta.get("username", "") if isinstance(u_meta, dict) else ""
+                    u_username = (
+                        u_meta.get("username", "") if isinstance(u_meta, dict) else ""
+                    )
                     created_at = _parse_created_at(getattr(u, "created_at", None))
                     return AuthUser(
-                        id=str(u.id), email=u_email, username=u_username, created_at=created_at
+                        id=str(u.id),
+                        email=u_email,
+                        username=u_username,
+                        created_at=created_at,
                     )
             return None
 
@@ -257,7 +262,9 @@ class SupabaseAuthAdapter:
         for row in rows:
             meta = row["raw_user_meta_data"] if "raw_user_meta_data" in row else {}
             username = meta.get("username", "") if isinstance(meta, dict) else ""
-            created_at = _parse_created_at(row["created_at"] if "created_at" in row else None)
+            created_at = _parse_created_at(
+                row["created_at"] if "created_at" in row else None
+            )
             result.append(
                 AuthUser(
                     id=str(row["id"]),
@@ -280,7 +287,9 @@ class SupabaseAuthAdapter:
             matches = []
             for u in users:
                 u_meta = getattr(u, "user_metadata", {}) or {}
-                u_username = u_meta.get("username", "") if isinstance(u_meta, dict) else ""
+                u_username = (
+                    u_meta.get("username", "") if isinstance(u_meta, dict) else ""
+                )
                 if q_lower in u_username.lower():
                     created_at = _parse_created_at(getattr(u, "created_at", None))
                     matches.append(

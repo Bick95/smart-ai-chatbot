@@ -51,7 +51,9 @@ async def lifespan(app: FastAPI):
     auth_adapter, auth_pool = await create_auth_adapter()
     app.state.auth = auth_adapter
 
-    logger.info("Initializing app data adapter (%s)", settings.APP_DATA_PROVIDER.lower())
+    logger.info(
+        "Initializing app data adapter (%s)", settings.APP_DATA_PROVIDER.lower()
+    )
     chat_adapter, chat_cleanup = await create_chat_adapter(existing_pool=auth_pool)
     app.state.chat = chat_adapter
 
@@ -103,9 +105,7 @@ def create_app() -> FastAPI:
     # - HTTPException: sanitizes 5xx details, passes 4xx through as-is
     # - Exception: catch-all for RuntimeError, DB errors, etc.; returns generic 500
     app.add_exception_handler(Exception, sanitized_exception_handler)
-    app.add_exception_handler(
-        StarletteHTTPException, sanitized_http_exception_handler
-    )
+    app.add_exception_handler(StarletteHTTPException, sanitized_http_exception_handler)
 
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(

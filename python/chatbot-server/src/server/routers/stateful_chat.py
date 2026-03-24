@@ -11,7 +11,6 @@ from langgraph.graph.state import CompiledStateGraph
 from src.app_data.ports.chat_port import ChatPort
 from src.app_data.ports.types import (
     Chat,
-    ChatMessage,
     Folder,
     MessageRole,
     Subject,
@@ -152,9 +151,7 @@ async def list_chats_shared_with_me(
 ) -> ChatListResponse:
     """List chats shared with the current user (flat; not grouped by owner's folders)."""
     subj = _subject_from_payload(subject)
-    result = await chat_port.list_chats_shared_with_me(
-        subj, limit=limit, cursor=cursor
-    )
+    result = await chat_port.list_chats_shared_with_me(subj, limit=limit, cursor=cursor)
     return ChatListResponse(
         items=[_chat_to_response(c) for c in result.items],
         next_cursor=result.next_cursor,
@@ -259,9 +256,7 @@ async def add_message(
         )
     subj = _subject_from_payload(subject)
     try:
-        msg = await chat_port.add_message(
-            chat_id, subj, body.role, body.content
-        )
+        msg = await chat_port.add_message(chat_id, subj, body.role, body.content)
     except PermissionError:
         raise HTTPException(status_code=403, detail="No edit access to this chat")
     except ValueError:
@@ -290,13 +285,13 @@ async def add_message(
                     system_prompt = folder.system_prompt
 
             # Get conversation history (includes the message we just added)
-            history = await chat_port.get_messages(
-                chat_id, subj, limit=50, cursor=None
-            )
+            history = await chat_port.get_messages(chat_id, subj, limit=50, cursor=None)
             messages = history.items
 
             # Build langchain messages; prepend system prompt from folder (not stored in history)
-            raw_messages = [{"role": m.role.value, "content": m.content} for m in messages]
+            raw_messages = [
+                {"role": m.role.value, "content": m.content} for m in messages
+            ]
             if system_prompt:
                 raw_messages.insert(0, {"role": "system", "content": system_prompt})
             langchain_messages = to_langchain_messages(raw_messages)
@@ -315,9 +310,7 @@ async def add_message(
                     )
         except Exception:
             logger.exception("Error generating reply in stateful_chat")
-            reply_content = get_prompt_handler().get(
-                "server.stateless_chat.fallback"
-            )
+            reply_content = get_prompt_handler().get("server.stateless_chat.fallback")
 
     return AddMessageResponse(
         message=_message_to_response(msg),
@@ -478,9 +471,7 @@ async def move_folder(
 ) -> FolderResponseItem:
     """Move folder to another parent. parent_id=null moves to root."""
     subj = _subject_from_payload(subject)
-    folder = await chat_port.move_folder_to_parent(
-        folder_id, subj, body.parent_id
-    )
+    folder = await chat_port.move_folder_to_parent(folder_id, subj, body.parent_id)
     if folder is None:
         raise HTTPException(
             status_code=400,
@@ -503,6 +494,7 @@ async def delete_folder(
 
 
 # --- Move chat to folder ---
+
 
 @router.patch("/{chat_id}/folder", response_model=ChatResponseItem)
 async def move_chat_to_folder(
@@ -536,7 +528,4 @@ async def search_users(
 ) -> list[UserSearchResponseItem]:
     """Search users by username (for adding as editors/viewers)."""
     users = await auth.search_users_by_username(q, limit=limit)
-    return [
-        UserSearchResponseItem(id=u.id, username=u.username)
-        for u in users
-    ]
+    return [UserSearchResponseItem(id=u.id, username=u.username) for u in users]

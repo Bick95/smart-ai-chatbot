@@ -1,0 +1,50 @@
+# Runs ./ci.sh --build: static checks, frontend production build (npm run build), then Docker image +
+# smoke tests for Python and web. Install caching is disabled so each run uses fresh dependency installs.
+# The "Install Node.js" step only selects Node — the frontend build runs in ./ci.sh (lint, npm run build, tests).
+#
+# Triggers:
+#   - push — any branch (feature work, and merges into main each produce a push)
+#   - pull_request — updates to PRs whose base branch is main (review before merge)
+#   - workflow_dispatch — manual run from the Actions tab
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Sync Python dependencies (chatbot-server)
+        run: uv sync --frozen --all-groups
+        working-directory: python/chatbot-server
+
+      - name: Run CI pipeline (static checks + Docker build + smoke)
+        run: ./ci.sh --build

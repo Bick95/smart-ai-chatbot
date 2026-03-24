@@ -38,7 +38,9 @@ def parse_subject_str(s: str) -> tuple[str, str]:
         SubjectType(parts[0])
     except ValueError:
         valid = [st.value for st in SubjectType]
-        raise ValueError(f"subject_type must be one of {valid}, got {parts[0]!r}") from None
+        raise ValueError(
+            f"subject_type must be one of {valid}, got {parts[0]!r}"
+        ) from None
     validate_uuid4(parts[1], field_name="subject_id")
     return (parts[0], parts[1])
 
@@ -72,7 +74,9 @@ class Subject(BaseModel):
     def to_str(self) -> str:
         """Serialize to 'type:id' format for DB and comparisons."""
         return to_subject_str(
-            self.subject_type.value if hasattr(self.subject_type, "value") else str(self.subject_type),
+            self.subject_type.value
+            if hasattr(self.subject_type, "value")
+            else str(self.subject_type),
             self.subject_id,
         )
 

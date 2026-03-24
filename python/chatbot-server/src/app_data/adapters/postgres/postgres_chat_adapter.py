@@ -436,9 +436,7 @@ class PostgresChatAdapter:
             )
         return [_row_to_share(r) for r in rows]
 
-    async def get_folder(
-        self, folder_id: str, subject: Subject
-    ) -> Folder | None:
+    async def get_folder(self, folder_id: str, subject: Subject) -> Folder | None:
         async with _conn_with_subject(self._pool, subject) as conn:
             row = await conn.fetchrow(
                 """
@@ -533,9 +531,7 @@ class PostgresChatAdapter:
         if "system_prompt" in kwargs:
             updates.append(f"system_prompt = ${idx}")
             values.append(
-                kwargs["system_prompt"].strip()
-                if kwargs["system_prompt"]
-                else None
+                kwargs["system_prompt"].strip() if kwargs["system_prompt"] else None
             )
             idx += 1
         if not updates:

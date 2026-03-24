@@ -11,14 +11,14 @@ from src.settings import settings
 
 # Restrict to safe characters to prevent injection; allow only valid email/username formats
 USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
-EMAIL_PATTERN = re.compile(
-    r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-)
+EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 
 
 def _validate_username(v: str) -> str:
     if not USERNAME_PATTERN.fullmatch(v):
-        raise ValueError("Username must contain only letters, numbers, underscores, and hyphens")
+        raise ValueError(
+            "Username must contain only letters, numbers, underscores, and hyphens"
+        )
     return v
 
 

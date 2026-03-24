@@ -7,7 +7,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import eslintConfigPrettier from "eslint-config-prettier";
 
 export default defineConfig([
-    globalIgnores(["dist"]),
+    globalIgnores(["dist", "coverage"]),
     {
         files: ["**/*.{ts,tsx}"],
         extends: [
@@ -20,6 +20,19 @@ export default defineConfig([
         languageOptions: {
             ecmaVersion: 2020,
             globals: globals.browser,
+        },
+        rules: {
+            // shadcn/ui exports variant helpers and hooks alongside components.
+            "react-refresh/only-export-components": [
+                "warn",
+                { allowConstantExport: true },
+            ],
+        },
+    },
+    {
+        files: ["src/components/ui/**/*.{ts,tsx}"],
+        rules: {
+            "react-refresh/only-export-components": "off",
         },
     },
 ]);

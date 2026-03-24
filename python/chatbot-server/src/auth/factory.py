@@ -27,9 +27,7 @@ async def create_auth_adapter() -> tuple[AuthPort, asyncpg.Pool | None]:
 
     if provider == "postgres":
         if settings.DATABASE_URL is None:
-            raise ValueError(
-                "AUTH_PROVIDER=postgres requires DATABASE_URL to be set"
-            )
+            raise ValueError("AUTH_PROVIDER=postgres requires DATABASE_URL to be set")
         pool = await asyncpg.create_pool(
             settings.DATABASE_URL.get_secret_value(),
             min_size=1,

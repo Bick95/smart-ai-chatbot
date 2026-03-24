@@ -8,7 +8,9 @@ from pathlib import Path
 from src.utils.logging import get_logger
 
 _logger = get_logger(__name__)
-MIGRATIONS_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent / "migrations"
+MIGRATIONS_DIR = (
+    Path(__file__).resolve().parent.parent.parent.parent.parent / "migrations"
+)
 
 
 async def run_migrations(pool: asyncpg.Pool) -> None:
@@ -31,17 +33,13 @@ async def run_migrations(pool: asyncpg.Pool) -> None:
 
         for path in sql_files:
             name = path.name
-            row = await conn.fetchrow(
-                "SELECT 1 FROM _migrations WHERE name = $1", name
-            )
+            row = await conn.fetchrow("SELECT 1 FROM _migrations WHERE name = $1", name)
             if row is not None:
                 continue
 
             sql = path.read_text()
             await conn.execute(sql)
-            await conn.execute(
-                "INSERT INTO _migrations (name) VALUES ($1)", name
-            )
+            await conn.execute("INSERT INTO _migrations (name) VALUES ($1)", name)
             _logger.info("Applied migration: %s", name)
 
     _logger.info("Migrations complete")

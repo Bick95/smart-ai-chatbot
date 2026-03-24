@@ -21,7 +21,9 @@ class TestToLangchainMessages:
         assert result[0].content == "hi back"
 
     def test_system_message(self):
-        result = to_langchain_messages([{"role": "system", "content": "You are helpful"}])
+        result = to_langchain_messages(
+            [{"role": "system", "content": "You are helpful"}]
+        )
         assert len(result) == 1
         assert isinstance(result[0], SystemMessage)
         assert result[0].content == "You are helpful"

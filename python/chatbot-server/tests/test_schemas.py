@@ -26,7 +26,6 @@ class TestChatMessage:
             ChatMessage(role="user", content="x" * (max_len + 1))
 
 
-
 @pytest.mark.unit
 class TestChatRequest:
     def test_valid_single_message(self):
