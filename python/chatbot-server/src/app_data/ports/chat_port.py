@@ -107,9 +107,7 @@ class ChatPort(Protocol):
         """List shares for a chat. Owner only."""
         ...
 
-    async def get_folder(
-        self, folder_id: Uuid4Str, subject: Subject
-    ) -> Folder | None:
+    async def get_folder(self, folder_id: Uuid4Str, subject: Subject) -> Folder | None:
         """Get folder if subject is the owner. Shared chats do not grant folder access."""
         ...
 

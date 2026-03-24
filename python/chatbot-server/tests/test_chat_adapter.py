@@ -40,7 +40,9 @@ class TestMockChatAdapter:
         assert chat.folder_id == folder.id
 
     @pytest.mark.asyncio
-    async def test_get_chat_returns_chat(self, adapter: MockChatAdapter, subject: Subject):
+    async def test_get_chat_returns_chat(
+        self, adapter: MockChatAdapter, subject: Subject
+    ):
         """get_chat returns chat when found and user has access."""
         created = await adapter.create_chat(subject, title="Test")
         found = await adapter.get_chat(created.id, subject)
@@ -69,9 +71,7 @@ class TestMockChatAdapter:
     async def test_add_message(self, adapter: MockChatAdapter, subject: Subject):
         """add_message appends message to chat."""
         chat = await adapter.create_chat(subject, title="Chat")
-        msg = await adapter.add_message(
-            chat.id, subject, role="user", content="Hello"
-        )
+        msg = await adapter.add_message(chat.id, subject, role="user", content="Hello")
         assert msg.chat_id == chat.id
         assert msg.role == "user"
         assert msg.content == "Hello"
@@ -93,9 +93,7 @@ class TestMockChatAdapter:
     ):
         """create_folder with parent_id stores parent."""
         parent = await adapter.create_folder(subject, name="Parent")
-        child = await adapter.create_folder(
-            subject, name="Child", parent_id=parent.id
-        )
+        child = await adapter.create_folder(subject, name="Child", parent_id=parent.id)
         assert child.parent_id == parent.id
 
     @pytest.mark.asyncio
@@ -107,9 +105,7 @@ class TestMockChatAdapter:
         assert len(folders) == 2
 
     @pytest.mark.asyncio
-    async def test_update_chat_title(
-        self, adapter: MockChatAdapter, subject: Subject
-    ):
+    async def test_update_chat_title(self, adapter: MockChatAdapter, subject: Subject):
         """update_chat updates title."""
         chat = await adapter.create_chat(subject, title="Old")
         updated = await adapter.update_chat(
@@ -159,9 +155,7 @@ class TestMockChatAdapter:
         assert found.name == "Test Folder"
 
     @pytest.mark.asyncio
-    async def test_update_folder(
-        self, adapter: MockChatAdapter, subject: Subject
-    ):
+    async def test_update_folder(self, adapter: MockChatAdapter, subject: Subject):
         """update_folder updates name and system_prompt."""
         folder = await adapter.create_folder(subject, name="Original")
         updated = await adapter.update_folder(
@@ -201,7 +195,7 @@ class TestMockChatAdapter:
         self, adapter: MockChatAdapter, subject: Subject
     ):
         """list_chats with cursor returns next page."""
-        c1 = await adapter.create_chat(subject, title="A")
+        await adapter.create_chat(subject, title="A")
         await adapter.create_chat(subject, title="B")
         await adapter.create_chat(subject, title="C")
         first = await adapter.list_chats(subject, limit=1)
@@ -345,7 +339,9 @@ class TestMockChatAdapter:
         assert any(c.id == chat.id for c in all_visible.items)
 
     @pytest.mark.asyncio
-    async def test_remove_share_when_none(self, adapter: MockChatAdapter, subject: Subject):
+    async def test_remove_share_when_none(
+        self, adapter: MockChatAdapter, subject: Subject
+    ):
         """remove_share returns False when no share exists."""
         chat = await adapter.create_chat(subject, title="Chat")
         grantee = Subject(
@@ -364,7 +360,9 @@ class TestMockChatAdapter:
         assert updated.name == "Renamed"
 
     @pytest.mark.asyncio
-    async def test_move_folder_rejects_self(self, adapter: MockChatAdapter, subject: Subject):
+    async def test_move_folder_rejects_self(
+        self, adapter: MockChatAdapter, subject: Subject
+    ):
         """move_folder_to_parent returns None when moving into self."""
         folder = await adapter.create_folder(subject, name="Folder")
         result = await adapter.move_folder_to_parent(folder.id, subject, folder.id)
@@ -376,9 +374,7 @@ class TestMockChatAdapter:
     ):
         """move_folder_to_parent returns None when move would create cycle."""
         parent = await adapter.create_folder(subject, name="Parent")
-        child = await adapter.create_folder(
-            subject, name="Child", parent_id=parent.id
-        )
+        child = await adapter.create_folder(subject, name="Child", parent_id=parent.id)
         # Moving parent into child would create cycle
         result = await adapter.move_folder_to_parent(parent.id, subject, child.id)
         assert result is None
@@ -387,7 +383,9 @@ class TestMockChatAdapter:
     async def test_delete_folder(self, adapter: MockChatAdapter, subject: Subject):
         """delete_folder removes folder and moves chats to root."""
         folder = await adapter.create_folder(subject, name="To Delete")
-        chat = await adapter.create_chat(subject, folder_id=folder.id, title="In Folder")
+        chat = await adapter.create_chat(
+            subject, folder_id=folder.id, title="In Folder"
+        )
         ok = await adapter.delete_folder(folder.id, subject)
         assert ok is True
         found_folder = await adapter.get_folder(folder.id, subject)
@@ -402,9 +400,7 @@ class TestMockChatAdapter:
     ):
         """delete_folder moves child folders to deleted folder's parent."""
         parent = await adapter.create_folder(subject, name="Parent")
-        child = await adapter.create_folder(
-            subject, name="Child", parent_id=parent.id
-        )
+        child = await adapter.create_folder(subject, name="Child", parent_id=parent.id)
         ok = await adapter.delete_folder(parent.id, subject)
         assert ok is True
         found = await adapter.get_folder(child.id, subject)

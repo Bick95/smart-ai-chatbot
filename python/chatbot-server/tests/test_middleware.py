@@ -18,9 +18,7 @@ def app_with_handler():
     """Minimal app with sanitized exception handlers for testing."""
     app = FastAPI()
     app.add_exception_handler(Exception, sanitized_exception_handler)
-    app.add_exception_handler(
-        StarletteHTTPException, sanitized_http_exception_handler
-    )
+    app.add_exception_handler(StarletteHTTPException, sanitized_http_exception_handler)
 
     @app.get("/ok")
     def ok():

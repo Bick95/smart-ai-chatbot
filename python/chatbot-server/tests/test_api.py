@@ -115,9 +115,7 @@ class TestAuthEndpoints:
 
     def test_get_user_returns_401_without_token(self, client):
         """Protected endpoints require Bearer token."""
-        response = client.get(
-            "/api/v1/auth/users/550e8400-e29b-41d4-a716-446655440000"
-        )
+        response = client.get("/api/v1/auth/users/550e8400-e29b-41d4-a716-446655440000")
         assert response.status_code == 401
 
     def test_stateless_chat_returns_401_without_token(self, client):
@@ -137,7 +135,11 @@ class TestAuthEndpoints:
         """Login with valid credentials returns user and tokens."""
         client.post(
             "/api/v1/auth/signup",
-            json={"email": "login@test.com", "username": "loginuser", "password": "password123"},
+            json={
+                "email": "login@test.com",
+                "username": "loginuser",
+                "password": "password123",
+            },
         )
         response = client.post(
             "/api/v1/auth/login",
@@ -153,7 +155,11 @@ class TestAuthEndpoints:
         """Refresh with valid token returns new auth and refresh tokens."""
         signup = client.post(
             "/api/v1/auth/signup",
-            json={"email": "refresh@test.com", "username": "refreshuser", "password": "password123"},
+            json={
+                "email": "refresh@test.com",
+                "username": "refreshuser",
+                "password": "password123",
+            },
         )
         refresh_token = signup.json()["refresh_token"]
         response = client.post(
@@ -170,7 +176,11 @@ class TestAuthEndpoints:
         """Get user returns own user when authenticated."""
         signup = client.post(
             "/api/v1/auth/signup",
-            json={"email": "getuser@test.com", "username": "getuser", "password": "password123"},
+            json={
+                "email": "getuser@test.com",
+                "username": "getuser",
+                "password": "password123",
+            },
         )
         auth_token = signup.json()["auth_token"]
         user_id = signup.json()["user"]["id"]
@@ -185,7 +195,11 @@ class TestAuthEndpoints:
         """Update username returns updated user."""
         signup = client.post(
             "/api/v1/auth/signup",
-            json={"email": "upduser@test.com", "username": "oldname", "password": "password123"},
+            json={
+                "email": "upduser@test.com",
+                "username": "oldname",
+                "password": "password123",
+            },
         )
         auth_token = signup.json()["auth_token"]
         user_id = signup.json()["user"]["id"]
@@ -201,7 +215,11 @@ class TestAuthEndpoints:
         """Update password succeeds and allows login with new password."""
         signup = client.post(
             "/api/v1/auth/signup",
-            json={"email": "pwduser@test.com", "username": "pwduser", "password": "oldpass123"},
+            json={
+                "email": "pwduser@test.com",
+                "username": "pwduser",
+                "password": "oldpass123",
+            },
         )
         auth_token = signup.json()["auth_token"]
         user_id = signup.json()["user"]["id"]
@@ -211,16 +229,23 @@ class TestAuthEndpoints:
             json={"password": "newpass456"},
         )
         assert r.status_code == 200
-        assert client.post(
-            "/api/v1/auth/login",
-            json={"email": "pwduser@test.com", "password": "newpass456"},
-        ).status_code == 200
+        assert (
+            client.post(
+                "/api/v1/auth/login",
+                json={"email": "pwduser@test.com", "password": "newpass456"},
+            ).status_code
+            == 200
+        )
 
     def test_delete_user_with_valid_token(self, client):
         """Delete user removes account."""
         signup = client.post(
             "/api/v1/auth/signup",
-            json={"email": "deluser@test.com", "username": "deluser", "password": "password123"},
+            json={
+                "email": "deluser@test.com",
+                "username": "deluser",
+                "password": "password123",
+            },
         )
         auth_token = signup.json()["auth_token"]
         user_id = signup.json()["user"]["id"]
@@ -229,16 +254,23 @@ class TestAuthEndpoints:
             headers={"Authorization": f"Bearer {auth_token}"},
         )
         assert r.status_code == 200
-        assert client.post(
-            "/api/v1/auth/login",
-            json={"email": "deluser@test.com", "password": "password123"},
-        ).status_code == 401
+        assert (
+            client.post(
+                "/api/v1/auth/login",
+                json={"email": "deluser@test.com", "password": "password123"},
+            ).status_code
+            == 401
+        )
 
     def test_update_email_with_valid_token(self, client):
         """Update email returns updated user."""
         signup = client.post(
             "/api/v1/auth/signup",
-            json={"email": "oldemail@test.com", "username": "emailuser", "password": "password123"},
+            json={
+                "email": "oldemail@test.com",
+                "username": "emailuser",
+                "password": "password123",
+            },
         )
         auth_token = signup.json()["auth_token"]
         user_id = signup.json()["user"]["id"]
@@ -262,7 +294,11 @@ class TestAuthEndpoints:
         """Get user returns 403 when requesting another user's data."""
         signup = client.post(
             "/api/v1/auth/signup",
-            json={"email": "owner@test.com", "username": "owner", "password": "password123"},
+            json={
+                "email": "owner@test.com",
+                "username": "owner",
+                "password": "password123",
+            },
         )
         auth_token = signup.json()["auth_token"]
         other_id = "660e8400-e29b-41d4-a716-446655440001"
@@ -283,11 +319,19 @@ class TestAuthEndpoints:
         """Signup with existing email returns 409."""
         client.post(
             "/api/v1/auth/signup",
-            json={"email": "signup-dup@test.com", "username": "user1", "password": "password123"},
+            json={
+                "email": "signup-dup@test.com",
+                "username": "user1",
+                "password": "password123",
+            },
         )
         r = client.post(
             "/api/v1/auth/signup",
-            json={"email": "signup-dup@test.com", "username": "user2", "password": "otherpass123"},
+            json={
+                "email": "signup-dup@test.com",
+                "username": "user2",
+                "password": "otherpass123",
+            },
         )
         assert r.status_code == 409
         assert "email" in r.json()["detail"].lower()
@@ -296,11 +340,19 @@ class TestAuthEndpoints:
         """Update email to existing email returns 409."""
         client.post(
             "/api/v1/auth/signup",
-            json={"email": "email-dup-first@test.com", "username": "first", "password": "password123"},
+            json={
+                "email": "email-dup-first@test.com",
+                "username": "first",
+                "password": "password123",
+            },
         )
         r2 = client.post(
             "/api/v1/auth/signup",
-            json={"email": "email-dup-second@test.com", "username": "second", "password": "password123"},
+            json={
+                "email": "email-dup-second@test.com",
+                "username": "second",
+                "password": "password123",
+            },
         )
         auth_token = r2.json()["auth_token"]
         user_id = r2.json()["user"]["id"]
@@ -377,7 +429,9 @@ class TestStatelessChatEndpoint:
         assert response.status_code == 200
         assert response.json()["content"] == "Mocked reply"
 
-    def test_stateless_chat_rejects_non_alternating_messages(self, client_with_mock_agent):
+    def test_stateless_chat_rejects_non_alternating_messages(
+        self, client_with_mock_agent
+    ):
         response = client_with_mock_agent.post(
             "/api/v1/stateless_chat",
             json={
@@ -389,7 +443,9 @@ class TestStatelessChatEndpoint:
         )
         assert response.status_code == 422
 
-    def test_stateless_chat_rejects_intermediate_system_message(self, client_with_mock_agent):
+    def test_stateless_chat_rejects_intermediate_system_message(
+        self, client_with_mock_agent
+    ):
         response = client_with_mock_agent.post(
             "/api/v1/stateless_chat",
             json={
@@ -423,9 +479,7 @@ class TestStatefulChatEndpoints:
         r1 = client_with_auth_bypass.post("/api/v1/chats", json={})
         assert r1.status_code == 200
         chat_id = r1.json()["id"]
-        r2 = client_with_auth_bypass.post(
-            "/api/v1/folders", json={"name": "My Folder"}
-        )
+        r2 = client_with_auth_bypass.post("/api/v1/folders", json={"name": "My Folder"})
         assert r2.status_code == 200
         folder_id = r2.json()["id"]
         # Rename
@@ -571,9 +625,7 @@ class TestStatefulChatEndpoints:
 
     def test_move_folder(self, client_with_auth_bypass):
         """Move folder to root and to another folder."""
-        r1 = client_with_auth_bypass.post(
-            "/api/v1/folders", json={"name": "Parent"}
-        )
+        r1 = client_with_auth_bypass.post("/api/v1/folders", json={"name": "Parent"})
         assert r1.status_code == 200
         parent_id = r1.json()["id"]
         r2 = client_with_auth_bypass.post(
@@ -662,9 +714,7 @@ class TestStatefulChatEndpoints:
 
     def test_patch_folder_name_and_system_prompt(self, client_with_auth_bypass):
         """Patch folder updates name and system_prompt."""
-        r1 = client_with_auth_bypass.post(
-            "/api/v1/folders", json={"name": "Original"}
-        )
+        r1 = client_with_auth_bypass.post("/api/v1/folders", json={"name": "Original"})
         assert r1.status_code == 200
         folder_id = r1.json()["id"]
         r2 = client_with_auth_bypass.patch(
@@ -722,7 +772,10 @@ class TestStatefulChatEndpoints:
             json={},
         )
         assert r2.status_code == 400
-        assert "title" in r2.json()["detail"].lower() or "folder" in r2.json()["detail"].lower()
+        assert (
+            "title" in r2.json()["detail"].lower()
+            or "folder" in r2.json()["detail"].lower()
+        )
 
     def test_update_chat_404_for_unknown(self, client_with_auth_bypass):
         """PATCH chat returns 404 for unknown chat."""

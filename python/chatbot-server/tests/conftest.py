@@ -17,7 +17,9 @@ from src.server.dependencies import get_agent_graph, get_current_subject
 
 
 # Dummy subject for tests that bypass auth (e.g. chat logic, path validation)
-MOCK_SUBJECT = SubjectPayload(subject_type=SubjectType.USER, subject_id="550e8400-e29b-41d4-a716-446655440000")
+MOCK_SUBJECT = SubjectPayload(
+    subject_type=SubjectType.USER, subject_id="550e8400-e29b-41d4-a716-446655440000"
+)
 
 
 def _mock_get_current_subject() -> SubjectPayload:
@@ -32,7 +34,8 @@ class MockAgent:
         from langchain_core.messages import AIMessage
 
         return {
-            "messages": list(state.get("messages", [])) + [AIMessage(content="Mocked reply")]
+            "messages": list(state.get("messages", []))
+            + [AIMessage(content="Mocked reply")]
         }
 
 
@@ -46,6 +49,7 @@ def client():
 @pytest.fixture
 def client_with_mock_agent(client):
     """Test client with mocked agent (no LLM calls) and auth bypass for chat tests."""
+
     async def override_get_agent_graph():
         return MockAgent()
 

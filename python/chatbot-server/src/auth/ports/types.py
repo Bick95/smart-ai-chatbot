@@ -35,6 +35,8 @@ class AuthUser:
         return cls(
             id=str(data["id"]),
             email=str(data["email"]),
-            username=str(data.get("username", data.get("user_metadata", {}).get("username", ""))),
+            username=str(
+                data.get("username", data.get("user_metadata", {}).get("username", ""))
+            ),
             created_at=created,
         )

@@ -130,7 +130,9 @@ class TestMockAuthAdapter:
         assert found.id == created.id
 
     @pytest.mark.asyncio
-    async def test_get_user_by_id_returns_none_for_unknown(self, adapter: MockAuthAdapter):
+    async def test_get_user_by_id_returns_none_for_unknown(
+        self, adapter: MockAuthAdapter
+    ):
         """get_user_by_id returns None when not found."""
         found = await adapter.get_user_by_id("550e8400-e29b-41d4-a716-446655440000")
         assert found is None
@@ -191,7 +193,10 @@ class TestMockAuthAdapter:
         ok = await adapter.update_password(user.id, "newpass456")
         assert ok is True
         assert await adapter.verify_credentials("pwd@example.com", "oldpass123") is None
-        assert await adapter.verify_credentials("pwd@example.com", "newpass456") is not None
+        assert (
+            await adapter.verify_credentials("pwd@example.com", "newpass456")
+            is not None
+        )
 
     @pytest.mark.asyncio
     async def test_delete_account(self, adapter: MockAuthAdapter):

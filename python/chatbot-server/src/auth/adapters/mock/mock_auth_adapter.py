@@ -109,11 +109,7 @@ class MockAuthAdapter:
         q = query.strip().lower()
         if not q:
             return []
-        matches = [
-            u.user
-            for u in self._users.values()
-            if q in u.user.username.lower()
-        ]
+        matches = [u.user for u in self._users.values() if q in u.user.username.lower()]
         matches.sort(key=lambda u: u.username)
         return matches[:limit]
 

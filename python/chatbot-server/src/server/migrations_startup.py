@@ -34,7 +34,10 @@ async def run_migrations_on_startup() -> None:
         logger.info("Skipping DB migrations (RUN_MIGRATIONS_ON_STARTUP=false)")
         return
 
-    if settings.AUTH_PROVIDER.lower() == "mock" and settings.APP_DATA_PROVIDER.lower() == "mock":
+    if (
+        settings.AUTH_PROVIDER.lower() == "mock"
+        and settings.APP_DATA_PROVIDER.lower() == "mock"
+    ):
         logger.info("Skipping DB migrations (mock auth and mock app data)")
         return
 

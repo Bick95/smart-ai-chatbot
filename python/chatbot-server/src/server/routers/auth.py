@@ -34,7 +34,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 _logger = get_logger(__name__)
 
 # UUID-v4 pattern for user_id path params (RFC 4122, lowercase hex)
-_USER_ID_PATH = Path(..., pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+_USER_ID_PATH = Path(
+    ...,
+    pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+)
 
 
 def _user_to_response(user: AuthUser) -> AuthUserResponse:
@@ -83,7 +86,11 @@ async def signup(
         )
         return _user_to_tokens_response(user)
     except Exception as e:
-        if "unique" in str(e).lower() or "duplicate" in str(e).lower() or "already" in str(e).lower():
+        if (
+            "unique" in str(e).lower()
+            or "duplicate" in str(e).lower()
+            or "already" in str(e).lower()
+        ):
             raise HTTPException(status_code=409, detail="Email already registered")
         _logger.warning("signup: unexpected %s", type(e).__name__, exc_info=True)
         # Never expose internal error details to clients
@@ -179,7 +186,11 @@ async def update_email(
     try:
         ok = await auth.update_email(user_id, body.email)
     except Exception as e:
-        if "unique" in str(e).lower() or "duplicate" in str(e).lower() or "already" in str(e).lower():
+        if (
+            "unique" in str(e).lower()
+            or "duplicate" in str(e).lower()
+            or "already" in str(e).lower()
+        ):
             raise HTTPException(status_code=409, detail="Email already registered")
         _logger.warning("update_email: unexpected %s", type(e).__name__, exc_info=True)
         raise HTTPException(status_code=400, detail="Email update failed")
