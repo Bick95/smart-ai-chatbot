@@ -4,6 +4,7 @@
 
 ## Checklist
 
+- [ ] New tests added for new functionality
 - [ ] `./ci.sh` ran and the **CI pipeline succeeded** for the changes in this PR.
 - [ ] This PR has a **clear, descriptive title** (concise scope; no vague placeholders like “fix stuff”).
 
