@@ -2,7 +2,7 @@
 # Root CI entrypoint: run the same pipeline locally or from GitHub Actions.
 #
 # Pipeline shape (each service script does the real work):
-#   1. Static checks only — lint, format check, typecheck (web), unit tests.
+#   1. Static checks only — lint, format check, web production build (tsc+vite), unit tests.
 #   2. If you pass --build — Docker image build, then a short smoke test against the running container.
 # This file only parses flags and invokes python/chatbot-server/ci.sh and/or web/chat-ui/ci.sh in order.
 set -euo pipefail

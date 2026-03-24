@@ -14,7 +14,7 @@ done
 
 # =============================================================================
 # Phase 1 — Static checks (host-only; no Docker image built or run in this block)
-#   - Install deps, ESLint, TypeScript compile check, Vitest unit run.
+#   - Install deps, ESLint, production build (`npm run build` = tsc -b && vite build), Vitest.
 # =============================================================================
 
 echo "==> [web] npm ci"
@@ -23,8 +23,8 @@ npm ci
 echo "==> [web] lint"
 npm run lint
 
-echo "==> [web] typecheck"
-npm run typecheck
+echo "==> [web] production build (tsc + vite)"
+npm run build
 
 echo "==> [web] tests (vitest run)"
 npm run test:run
