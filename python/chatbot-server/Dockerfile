@@ -1,7 +1,10 @@
+# Runtime image for the FastAPI app (used by python/chatbot-server/ci.sh --build smoke).
+
 FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
+# uv installs locked prod dependencies from uv.lock.
 RUN pip install --no-cache-dir uv
 
 COPY pyproject.toml uv.lock README.md ./

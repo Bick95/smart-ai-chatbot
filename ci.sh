@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Root CI entrypoint: run the same pipeline locally or from GitHub Actions.
-# Default: lint + format check + tests for every service. Use --build to add Docker image build + smoke.
+#
+# Pipeline shape (each service script does the real work):
+#   1. Static checks only — lint, format check, typecheck (web), unit tests.
+#   2. If you pass --build — Docker image build, then a short smoke test against the running container.
+# This file only parses flags and invokes python/chatbot-server/ci.sh and/or web/chat-ui/ci.sh in order.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -63,6 +67,8 @@ canonical_service() {
   esac
 }
 
+# --- Resolve which services to run (default: python then web; dedupe --only aliases) ---
+
 declare -A _ci_seen=()
 SERVICES=()
 if [[ ${#ONLY[@]} -eq 0 ]]; then
@@ -76,10 +82,14 @@ else
   done
 fi
 
+# Forward --build to child scripts so they know to continue past static checks into Docker + smoke.
+
 extra=()
 if [[ "$BUILD" == true ]]; then
   extra+=(--build)
 fi
+
+# --- Run each selected service in order (static checks always; build+smoke only with --build) ---
 
 for svc in "${SERVICES[@]}"; do
   case "$svc" in

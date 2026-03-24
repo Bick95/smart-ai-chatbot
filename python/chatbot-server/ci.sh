@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# chatbot-server: ruff → tests → optional Docker build + /health smoke.
+# chatbot-server CI: static checks, then (optional) Docker build + smoke on /health.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,6 +14,11 @@ for arg in "$@"; do
   fi
 done
 
+# =============================================================================
+# Phase 1 — Static checks (host-only; no Docker image built or run in this block)
+#   - Lint + format gate, then unit tests (integration-marked tests skipped).
+# =============================================================================
+
 echo "==> [python] ruff check"
 uv run ruff check src tests
 
@@ -23,14 +28,24 @@ uv run ruff format --check src tests
 echo "==> [python] pytest (exclude integration marker)"
 uv run pytest -m "not integration"
 
+# Without --build we stop after Phase 1.
+
 if [[ "$BUILD" != true ]]; then
   exit 0
 fi
+
+# =============================================================================
+# Phase 2 — Container image build (production-like artifact from Dockerfile)
+# =============================================================================
 
 IMAGE_TAG="${SMART_AI_CHATBOT_IMAGE:-smart-ai-chatbot-chatbot-server:ci}"
 
 echo "==> [python] docker build ($IMAGE_TAG)"
 docker build -t "$IMAGE_TAG" .
+
+# =============================================================================
+# Phase 3 — Smoke test (run container, poll until GET /health succeeds or timeout)
+# =============================================================================
 
 echo "==> [python] docker smoke: GET /health"
 cid="$(docker run -d --rm -p 0:8000 \

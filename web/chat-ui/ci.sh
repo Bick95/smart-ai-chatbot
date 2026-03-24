@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# chat-ui: npm lint → typecheck → tests → optional Docker build + HTTP smoke.
+# chat-ui CI: static checks, then (optional) Docker build + smoke on GET /.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,6 +11,11 @@ for arg in "$@"; do
     BUILD=true
   fi
 done
+
+# =============================================================================
+# Phase 1 — Static checks (host-only; no Docker image built or run in this block)
+#   - Install deps, ESLint, TypeScript compile check, Vitest unit run.
+# =============================================================================
 
 echo "==> [web] npm ci"
 npm ci
@@ -24,14 +29,24 @@ npm run typecheck
 echo "==> [web] tests (vitest run)"
 npm run test:run
 
+# Without --build we stop after Phase 1.
+
 if [[ "$BUILD" != true ]]; then
   exit 0
 fi
+
+# =============================================================================
+# Phase 2 — Container image build (static site + nginx from Dockerfile)
+# =============================================================================
 
 IMAGE_TAG="${SMART_AI_CHATBOT_WEB_IMAGE:-smart-ai-chatbot-chat-ui:ci}"
 
 echo "==> [web] docker build ($IMAGE_TAG)"
 docker build -t "$IMAGE_TAG" .
+
+# =============================================================================
+# Phase 3 — Smoke test (run container, poll until GET / returns 200 or timeout)
+# =============================================================================
 
 echo "==> [web] docker smoke: GET /"
 cid="$(docker run -d --rm -p 0:80 "$IMAGE_TAG")"
