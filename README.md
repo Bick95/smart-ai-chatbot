@@ -10,6 +10,7 @@ The goal is a credible playground for **advanced chatbot-building**—multi-turn
 - A **React** single-page app (**Vite**, **TypeScript**, **Tailwind**, **[shadcn/ui](https://ui.shadcn.com/)** on **Radix** primitives) for the chat experience, routing, and client state.
 - **Hexagonal-style boundaries** for auth and app data (swappable adapters—e.g. Postgres vs mocks—so core logic stays testable and portable).
 - **Docker** images for the API and static UI, plus the root **`./ci.sh`** script (and GitHub Actions) that runs linting, tests, production builds, and optional image smoke checks.
+- **Docker Compose** for a full stack in one go: Postgres, API, and nginx (see **`compose.env.example`** and **`./deploy-compose.sh up`**).
 
 ## Tech snapshot
 
@@ -25,5 +26,7 @@ The goal is a credible playground for **advanced chatbot-building**—multi-turn
 
 ## Where to read next
 
-- `[python/chatbot-server/README.md](python/chatbot-server/README.md)` — running the API, env vars, migrations  
-- `[web/chat-ui/README.md](web/chat-ui/README.md)` — frontend dev server and build
+- [python/chatbot-server/README.md](python/chatbot-server/README.md) — running the API, env vars, migrations  
+- [web/chat-ui/README.md](web/chat-ui/README.md) — frontend dev server and build  
+
+**Docker Compose:** copy `compose.env.example` to `.env`, set secrets (including DB passwords — no defaults in `docker-compose.yml`), then run `./deploy-compose.sh up`. The web container serves the UI and proxies `/api` to the API (defaults: UI on port 8080, API on 8000). Set `DATABASE_APP_PASSWORD` to match the `chatbot_app` role password in Postgres (see `python/chatbot-server/migrations/001_initial_schema.sql` for how that role is created).

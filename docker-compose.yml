@@ -1,0 +1,76 @@
+# Full stack: Postgres, FastAPI chatbot API, static web UI (nginx proxies /api → API).
+# Usage: copy compose.env.example to .env, set secrets, then ./deploy-compose.sh up
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-chatbot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-chatbot}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-chatbot} -d ${POSTGRES_DB:-chatbot}",
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    networks: [stack]
+
+  api:
+    build:
+      context: ./python/chatbot-server
+      dockerfile: Dockerfile
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?set in .env}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set in .env}
+      # chatbot_app password must match the role in DB (see migrations/001_initial_schema.sql).
+      DATABASE_URL: postgresql://chatbot_app:${DATABASE_APP_PASSWORD:?set DATABASE_APP_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-chatbot}
+      MIGRATION_DATABASE_URL: postgresql://${POSTGRES_USER:-chatbot}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-chatbot}
+      RUN_MIGRATIONS_ON_STARTUP: "true"
+      AUTH_PROVIDER: postgres
+      APP_DATA_PROVIDER: postgres
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      HOST: "0.0.0.0"
+      PORT: "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+    networks: [stack]
+
+  web:
+    build:
+      context: ./web/chat-ui
+      dockerfile: Dockerfile
+    volumes:
+      - ./web/chat-ui/nginx.compose.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [stack]
+
+networks:
+  stack:
+    driver: bridge
+
+volumes:
+  postgres_data:
