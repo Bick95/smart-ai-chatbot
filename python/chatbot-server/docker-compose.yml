@@ -1,19 +1,23 @@
-# Postgres for local testing.
-# Default user "chatbot" is superuser — use only for MIGRATION_DATABASE_URL / scripts/run_migrations.py.
-# Runtime app should use DATABASE_URL=postgresql://chatbot_app:chatbot@... (created by migration 004).
+# Database container for local testing.
+# Set APP_DATA_DATABASE_ADMIN_* (and other vars) in .env — no default passwords in this file.
+# See src/settings.py and .env.example.
 services:
-  postgres:
+  database:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: chatbot
-      POSTGRES_PASSWORD: chatbot
-      POSTGRES_DB: chatbot
+      POSTGRES_USER: ${APP_DATA_DATABASE_ADMIN_USERNAME:-chatbot}
+      POSTGRES_PASSWORD: ${APP_DATA_DATABASE_ADMIN_PASSWORD:?set APP_DATA_DATABASE_ADMIN_PASSWORD in .env}
+      POSTGRES_DB: ${APP_DATA_DATABASE_NAME:-chatbot}
     ports:
       - "5432:5432"
     volumes:
-      - ${POSTGRES_DATA_PATH:-./postgres_data}:/var/lib/postgresql/data
+      - ${DATABASE_DATA_PATH:-./database_data}:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U chatbot -d chatbot"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\"",
+        ]
       interval: 2s
       timeout: 5s
       retries: 10

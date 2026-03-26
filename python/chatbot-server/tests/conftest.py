@@ -4,8 +4,8 @@ import os
 
 # Set env for tests before app import (auth and app_data use mock; no DB needed)
 os.environ["OPENAI_API_KEY"] = "sk-test-dummy-for-unit-tests"
-os.environ["AUTH_PROVIDER"] = "mock"
-os.environ["APP_DATA_PROVIDER"] = "mock"
+os.environ["AUTHENTICATION_SERVICE_PROVIDER"] = "mock"
+os.environ["APP_DATA_DATABASE_PROVIDER"] = "mock"
 os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-for-unit-tests-min-32-bytes"
 
 import pytest

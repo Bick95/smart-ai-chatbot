@@ -9,6 +9,7 @@ from starlette.requests import HTTPException as StarletteHTTPException
 from src.app_data.factory import create_chat_adapter
 from src.auth.factory import create_auth_adapter
 from src.utils.logging import get_logger
+from src.utils.database_connection_url import database_connection_urls_equivalent
 from src.chatbot.prompts import (
     FilePromptSource,
     HttpPromptSource,
@@ -32,7 +33,6 @@ from src.server.routers.stateless_chat import router as stateless_chat_router
 from src.settings import settings
 from src.utils.clients import create_clients
 
-
 logger = get_logger(__name__)
 
 
@@ -47,14 +47,45 @@ async def lifespan(app: FastAPI):
     clients = create_clients()
     app.state.clients = clients
 
-    logger.info("Initializing auth adapter (%s)", settings.AUTH_PROVIDER.lower())
+    logger.info(
+        "Initializing auth adapter (%s)",
+        settings.AUTHENTICATION_SERVICE_PROVIDER.lower(),
+    )
     auth_adapter, auth_pool = await create_auth_adapter()
     app.state.auth = auth_adapter
 
+    reuse_pool_for_app_data = False
+    app_dsn = settings.app_data_database_url()
+    if (
+        auth_pool is not None
+        and app_dsn is not None
+        and settings.app_data_database_uses_sql()
+    ):
+        if settings.authentication_service_uses_sql():
+            auth_dsn = settings.authentication_service_database_url()
+            if auth_dsn and database_connection_urls_equivalent(auth_dsn, app_dsn):
+                reuse_pool_for_app_data = True
+        elif (
+            settings.AUTHENTICATION_SERVICE_PROVIDER.lower() == "supabase"
+            and settings.AUTHENTICATION_SERVICE_DATABASE_URL is not None
+        ):
+            supa = settings.AUTHENTICATION_SERVICE_DATABASE_URL.get_secret_value()
+            if database_connection_urls_equivalent(supa, app_dsn):
+                reuse_pool_for_app_data = True
+
+    if reuse_pool_for_app_data:
+        logger.info(
+            "Auth and application data share the same database parameters; "
+            "using one connection pool."
+        )
+
     logger.info(
-        "Initializing app data adapter (%s)", settings.APP_DATA_PROVIDER.lower()
+        "Initializing app data adapter (%s)",
+        settings.APP_DATA_DATABASE_PROVIDER.lower(),
     )
-    chat_adapter, chat_cleanup = await create_chat_adapter(existing_pool=auth_pool)
+    chat_adapter, chat_cleanup = await create_chat_adapter(
+        existing_pool=auth_pool if reuse_pool_for_app_data else None
+    )
     app.state.chat = chat_adapter
 
     if settings.PROMPT_API_URL:

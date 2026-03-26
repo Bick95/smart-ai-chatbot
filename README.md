@@ -6,11 +6,11 @@ The goal is a credible playground for **advanced chatbot-building**—multi-turn
 
 ## What you’ll find
 
-- A **Python** service that exposes chat and auth APIs, runs an **agent** built with **LangGraph** / **LangChain**, and talks to **PostgreSQL** (or mock adapters) for real usage patterns.
+- A **Python** service that exposes chat and auth APIs, runs an **agent** built with **LangGraph** / **LangChain**, and talks to a **SQL database** (or mock adapters) for real usage patterns.
 - A **React** single-page app (**Vite**, **TypeScript**, **Tailwind**, **[shadcn/ui](https://ui.shadcn.com/)** on **Radix** primitives) for the chat experience, routing, and client state.
-- **Hexagonal-style boundaries** for auth and app data (swappable adapters—e.g. Postgres vs mocks—so core logic stays testable and portable).
+- **Hexagonal-style boundaries** for auth and app data (swappable adapters—e.g. SQL vs mocks—so core logic stays testable and portable).
 - **Docker** images for the API and static UI, plus the root **`./ci.sh`** script (and GitHub Actions) that runs linting, tests, production builds, and optional image smoke checks.
-- **Docker Compose** for a full stack in one go: Postgres, API, and nginx (see **`compose.env.example`** and **`./deploy-compose.sh up`**).
+- **Docker Compose** for a full stack in one go: database, API, and nginx (see **`compose.env.example`** and **`./deploy-compose.sh up`**).
 
 ## Tech snapshot
 
@@ -19,7 +19,7 @@ The goal is a credible playground for **advanced chatbot-building**—multi-turn
 | ----------- | --------------------------------------------------------------------------------------- |
 | Backend     | Python 3.12+, **FastAPI**, **Pydantic**, **uv** for env/lockfiles                       |
 | Agent & LLM | **LangGraph**, **LangChain**, OpenAI-compatible models                                  |
-| Data & auth | **asyncpg**, SQL migrations, JWT, optional **Supabase** paths                           |
+| Data & auth | **asyncpg**, SQL migrations, JWT, optional **Supabase** adapter                       |
 | Frontend    | **React 19**, **Vite**, **TypeScript**, **Zustand**, **TanStack Form**, **Zod, Shadcn** |
 | Quality     | **Ruff**, **pytest**, **ESLint**, **Vitest**                                            |
 
@@ -29,4 +29,4 @@ The goal is a credible playground for **advanced chatbot-building**—multi-turn
 - [python/chatbot-server/README.md](python/chatbot-server/README.md) — running the API, env vars, migrations  
 - [web/chat-ui/README.md](web/chat-ui/README.md) — frontend dev server and build  
 
-**Docker Compose:** copy `compose.env.example` to `.env`, set secrets (including DB passwords — no defaults in `docker-compose.yml`), then run `./deploy-compose.sh up`. The web container serves the UI and proxies `/api` to the API (defaults: UI on port 8080, API on 8000). Set `DATABASE_APP_PASSWORD` to match the `chatbot_app` role password in Postgres (see `python/chatbot-server/migrations/001_initial_schema.sql` for how that role is created).
+**Docker Compose:** copy `compose.env.example` to `.env`, set every secret (including `APP_DATA_DATABASE_*` and `AUTHENTICATION_SERVICE_*` — see `python/chatbot-server/src/settings.py`), then run `./deploy-compose.sh up`. The web container serves the UI and proxies `/api` to the API (defaults: UI on port 8080, API on 8000). Role passwords must match what migrations define for each database user (see `python/chatbot-server/migrations/`).

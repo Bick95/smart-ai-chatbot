@@ -50,8 +50,8 @@ docker build -t "$IMAGE_TAG" .
 echo "==> [python] docker smoke: GET /health"
 cid="$(docker run -d --rm -p 0:8000 \
   -e OPENAI_API_KEY=sk-ci-smoke-dummy-key-for-docker-health \
-  -e AUTH_PROVIDER=mock \
-  -e APP_DATA_PROVIDER=mock \
+  -e AUTHENTICATION_SERVICE_PROVIDER=mock \
+  -e APP_DATA_DATABASE_PROVIDER=mock \
   -e JWT_SECRET_KEY=ci-smoke-jwt-secret-min-32-chars-ok \
   "$IMAGE_TAG")"
 

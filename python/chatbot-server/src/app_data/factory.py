@@ -16,24 +16,20 @@ async def _get_app_data_pool(
     existing_pool: asyncpg.Pool | None,
 ) -> tuple[asyncpg.Pool, bool]:
     """Get pool for app data. Returns (pool, owns_pool).
-    If existing_pool is provided, use it. Otherwise create from config.
+
+    If existing_pool is provided and matches the configured app DSN, use it.
+    Otherwise create a new pool from APP_DATA_DATABASE_*.
     """
+    dsn = settings.app_data_database_url()
+    if dsn is None:
+        raise ValueError(
+            "APP_DATA_DATABASE_PROVIDER=sql requires APP_DATA_DATABASE_USERNAME, "
+            "APP_DATA_DATABASE_PASSWORD, and APP_DATA_DATABASE_HOST / APP_DATA_DATABASE_NAME"
+        )
     if existing_pool is not None:
         return existing_pool, False
-    url = None
-    if settings.APP_DATA_DATABASE_URL is not None:
-        url = settings.APP_DATA_DATABASE_URL.get_secret_value()
-    elif settings.DATABASE_URL is not None:
-        url = settings.DATABASE_URL.get_secret_value()
-    elif settings.SUPABASE_DATABASE_URL is not None:
-        url = settings.SUPABASE_DATABASE_URL.get_secret_value()
-    if url is None:
-        raise ValueError(
-            "APP_DATA_PROVIDER=postgres requires a database URL. "
-            "Set APP_DATA_DATABASE_URL, DATABASE_URL, or SUPABASE_DATABASE_URL."
-        )
     pool = await asyncpg.create_pool(
-        url,
+        dsn,
         min_size=1,
         max_size=10,
         command_timeout=60,
@@ -47,24 +43,23 @@ async def create_chat_adapter(
     """Create chat adapter.
 
     Args:
-        existing_pool: Pool from auth (when auth uses postgres or supabase with DB).
-            When provided, migrations are run on it and it is reused.
+        existing_pool: Pool from auth when connection parameters match app data (same DSN).
 
     Returns:
-        (adapter, pool_to_close) - pool_to_close is the pool to close on shutdown
-        if we created it; None if we reuse existing_pool or use mock.
+        (adapter, pool_to_close) — pool_to_close is the pool this factory created, if any;
+        None if we reused existing_pool or use mock.
     """
-    provider = settings.APP_DATA_PROVIDER.lower()
+    provider = settings.APP_DATA_DATABASE_PROVIDER.lower()
 
     if provider == "mock":
         return MockChatAdapter(), None
 
-    if provider == "postgres":
+    if provider == "sql":
         pool, owns_pool = await _get_app_data_pool(existing_pool)
         adapter: ChatPort = PostgresChatAdapter(pool)
         return adapter, pool if owns_pool else None
 
     raise ValueError(
-        f"Unknown APP_DATA_PROVIDER: {settings.APP_DATA_PROVIDER}. "
-        "Use 'postgres' or 'mock'."
+        f"Unknown APP_DATA_DATABASE_PROVIDER: {settings.APP_DATA_DATABASE_PROVIDER}. "
+        "Use 'sql' or 'mock'."
     )

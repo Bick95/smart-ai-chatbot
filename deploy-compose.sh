@@ -11,14 +11,16 @@ usage() {
 Usage: deploy-compose.sh <command>
 
   up       Build images (if needed) and start all services in the background.
-  down     Stop and remove containers (keeps postgres_data volume).
+  down     Stop and remove containers (keeps database_data volume).
   logs     Follow logs from all services (Ctrl+C to stop).
   ps       Show container status.
   build    Build images without starting.
   restart  Restart all running services.
 
 Environment: create .env in the repo root (see compose.env.example).
-  Required: OPENAI_API_KEY, JWT_SECRET_KEY, POSTGRES_PASSWORD, DATABASE_APP_PASSWORD
+  Required: OPENAI_API_KEY, JWT_SECRET_KEY, APP_DATA_DATABASE_ADMIN_PASSWORD,
+  AUTHENTICATION_SERVICE_PASSWORD, APP_DATA_DATABASE_PASSWORD,
+  AUTHENTICATION_SERVICE_USERNAME, APP_DATA_DATABASE_USERNAME (see compose.env.example)
 
 After `up` (defaults): web UI http://localhost:8080 , API http://localhost:8000 (override with WEB_PORT / API_PORT in .env).
 EOF
@@ -31,7 +33,7 @@ fi
 
 if [[ ! -f .env ]]; then
     echo "Missing .env in repo root." >&2
-    echo "Copy compose.env.example to .env and set OPENAI_API_KEY and JWT_SECRET_KEY." >&2
+    echo "Copy compose.env.example to .env and set all required variables (see that file)." >&2
     exit 1
 fi
 

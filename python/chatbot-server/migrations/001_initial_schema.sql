@@ -284,12 +284,12 @@ CREATE TRIGGER chat_folders_owner_change_check
     FOR EACH ROW EXECUTE FUNCTION check_owner_change();
 
 -- -----------------------------------------------------------------------------
--- Least-privileged runtime role (rotate password in production)
+-- Least-privileged runtime role (password set from env after migrations; see migrations.py)
 -- -----------------------------------------------------------------------------
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'chatbot_app') THEN
-        CREATE ROLE chatbot_app WITH LOGIN PASSWORD 'chatbot'
+        CREATE ROLE chatbot_app WITH LOGIN
             NOSUPERUSER
             NOBYPASSRLS
             NOCREATEDB
