@@ -1,5 +1,5 @@
 # Full stack: database, FastAPI chatbot API, static web UI (nginx proxies /api → API).
-# Usage: copy compose.env.example to .env, set secrets, then ./deploy-compose.sh up
+# Usage: copy .env.compose.example to .env, set secrets, then ./deploy-compose.sh up
 
 services:
   database:

@@ -6,7 +6,7 @@ Usage:
 
 Database URL resolution order:
   1) --database-url
-  2) APP_DATA_DATABASE_ADMIN_* (see Settings.app_data_database_admin_url() / compose.env.example)
+  2) APP_DATA_DATABASE_ADMIN_* (see Settings.app_data_database_admin_url() / .env.compose.example)
 """
 
 from __future__ import annotations

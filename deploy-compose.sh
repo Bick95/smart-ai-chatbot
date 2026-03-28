@@ -17,10 +17,10 @@ Usage: deploy-compose.sh <command>
   build    Build images without starting.
   restart  Restart all running services.
 
-Environment: create .env in the repo root (see compose.env.example).
+Environment: create .env in the repo root (see .env.compose.example).
   Required: OPENAI_API_KEY, JWT_SECRET_KEY, APP_DATA_DATABASE_ADMIN_PASSWORD,
   AUTHENTICATION_SERVICE_PASSWORD, APP_DATA_DATABASE_PASSWORD,
-  AUTHENTICATION_SERVICE_USERNAME, APP_DATA_DATABASE_USERNAME (see compose.env.example)
+  AUTHENTICATION_SERVICE_USERNAME, APP_DATA_DATABASE_USERNAME (see .env.compose.example)
 
 After `up` (defaults): web UI http://localhost:8080 , API http://localhost:8000 (override with WEB_PORT / API_PORT in .env).
 EOF
@@ -33,7 +33,7 @@ fi
 
 if [[ ! -f .env ]]; then
     echo "Missing .env in repo root." >&2
-    echo "Copy compose.env.example to .env and set all required variables (see that file)." >&2
+    echo "Copy .env.compose.example to .env and set all required variables (see that file)." >&2
     exit 1
 fi
 

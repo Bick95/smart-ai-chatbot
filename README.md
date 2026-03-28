@@ -10,7 +10,7 @@ The goal is a credible playground for **advanced chatbot-building**—multi-turn
 - A **React** single-page app (**Vite**, **TypeScript**, **Tailwind**, **[shadcn/ui](https://ui.shadcn.com/)** on **Radix** primitives) for the chat experience, routing, and client state.
 - **Hexagonal-style boundaries** for auth and app data (swappable adapters—e.g. SQL vs mocks—so core logic stays testable and portable).
 - **Docker** images for the API and static UI, plus the root **`./ci.sh`** script (and GitHub Actions) that runs linting, tests, production builds, and optional image smoke checks.
-- **Docker Compose** for a full stack in one go: database, API, and nginx (see **`compose.env.example`** and **`./deploy-compose.sh up`**).
+- **Docker Compose** for a full stack in one go: database, API, and nginx (see **`.env.compose.example`** and **`./deploy-compose.sh up`**).
 
 ## Tech snapshot
 
@@ -29,4 +29,4 @@ The goal is a credible playground for **advanced chatbot-building**—multi-turn
 - [python/chatbot-server/README.md](python/chatbot-server/README.md) — running the API, env vars, migrations  
 - [web/chat-ui/README.md](web/chat-ui/README.md) — frontend dev server and build  
 
-**Docker Compose:** copy `compose.env.example` to `.env`, set every secret (including `APP_DATA_DATABASE_*` and `AUTHENTICATION_SERVICE_*` — see `python/chatbot-server/src/settings.py`), then run `./deploy-compose.sh up`. The web container serves the UI and proxies `/api` to the API (defaults: UI on port 8080, API on 8000). Role passwords must match what migrations define for each database user (see `python/chatbot-server/migrations/`).
+**Docker Compose:** copy `.env.compose.example` to `.env`, set every secret (including `APP_DATA_DATABASE_*` and `AUTHENTICATION_SERVICE_*` — see `python/chatbot-server/src/settings.py`), then run `./deploy-compose.sh up`. The web container serves the UI and proxies `/api` to the API (defaults: UI on port 8080, API on 8000). Role passwords must match what migrations define for each database user (see `python/chatbot-server/migrations/`).
