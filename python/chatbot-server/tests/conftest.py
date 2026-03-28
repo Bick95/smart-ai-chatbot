@@ -15,7 +15,6 @@ from src.auth.utils.jwt import SubjectPayload, SubjectType
 from src.server.app import app
 from src.server.dependencies import get_agent_graph, get_current_subject
 
-
 # Dummy subject for tests that bypass auth (e.g. chat logic, path validation)
 MOCK_SUBJECT = SubjectPayload(
     subject_type=SubjectType.USER, subject_id="550e8400-e29b-41d4-a716-446655440000"
