@@ -20,16 +20,20 @@ async def create_auth_adapter() -> tuple[AuthPort, asyncpg.Pool | None]:
     if settings.JWT_SECRET_KEY is None:
         raise ValueError("JWT_SECRET_KEY is required")
 
-    provider = settings.AUTH_PROVIDER.lower()
+    provider = settings.AUTHENTICATION_SERVICE_PROVIDER.lower()
 
     if provider == "mock":
         return MockAuthAdapter(), None
 
-    if provider == "postgres":
-        if settings.DATABASE_URL is None:
-            raise ValueError("AUTH_PROVIDER=postgres requires DATABASE_URL to be set")
+    if provider == "sql":
+        dsn = settings.authentication_service_database_url()
+        if dsn is None:
+            raise ValueError(
+                "AUTHENTICATION_SERVICE_PROVIDER=sql requires AUTHENTICATION_SERVICE_USERNAME, "
+                "AUTHENTICATION_SERVICE_PASSWORD, and APP_DATA_DATABASE_HOST / APP_DATA_DATABASE_NAME"
+            )
         pool = await asyncpg.create_pool(
-            settings.DATABASE_URL.get_secret_value(),
+            dsn,
             min_size=1,
             max_size=10,
             command_timeout=60,
@@ -38,27 +42,30 @@ async def create_auth_adapter() -> tuple[AuthPort, asyncpg.Pool | None]:
         return adapter, pool
 
     if provider == "supabase":
-        if not settings.SUPABASE_URL or settings.SUPABASE_SERVICE_ROLE_KEY is None:
+        if (
+            not settings.AUTHENTICATION_SERVICE_URL.strip()
+            or settings.AUTHENTICATION_SERVICE_PASSWORD is None
+        ):
             raise ValueError(
-                "AUTH_PROVIDER=supabase requires SUPABASE_URL and "
-                "SUPABASE_SERVICE_ROLE_KEY to be set"
+                "AUTHENTICATION_SERVICE_PROVIDER=supabase requires AUTHENTICATION_SERVICE_URL and "
+                "AUTHENTICATION_SERVICE_PASSWORD (service role secret)"
             )
-        pool: asyncpg.Pool | None = None
-        if settings.SUPABASE_DATABASE_URL is not None:
-            pool = await asyncpg.create_pool(
-                settings.SUPABASE_DATABASE_URL.get_secret_value(),
+        supabase_pool: asyncpg.Pool | None = None
+        if settings.AUTHENTICATION_SERVICE_DATABASE_URL is not None:
+            supabase_pool = await asyncpg.create_pool(
+                settings.AUTHENTICATION_SERVICE_DATABASE_URL.get_secret_value(),
                 min_size=1,
                 max_size=5,
                 command_timeout=60,
             )
         adapter = SupabaseAuthAdapter(
-            supabase_url=settings.SUPABASE_URL,
-            service_role_key=settings.SUPABASE_SERVICE_ROLE_KEY.get_secret_value(),
-            database_pool=pool,
+            supabase_url=settings.AUTHENTICATION_SERVICE_URL.strip(),
+            service_role_key=settings.AUTHENTICATION_SERVICE_PASSWORD.get_secret_value(),
+            database_pool=supabase_pool,
         )
-        return adapter, pool
+        return adapter, supabase_pool
 
     raise ValueError(
-        f"Unknown AUTH_PROVIDER: {settings.AUTH_PROVIDER}. "
-        "Use 'postgres', 'supabase', or 'mock' (for tests)."
+        f"Unknown AUTHENTICATION_SERVICE_PROVIDER: {settings.AUTHENTICATION_SERVICE_PROVIDER}. "
+        "Use 'sql', 'supabase', or 'mock' (for tests)."
     )

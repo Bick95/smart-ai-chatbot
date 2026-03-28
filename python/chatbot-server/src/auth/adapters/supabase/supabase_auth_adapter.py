@@ -141,15 +141,17 @@ class SupabaseAuthAdapter:
 
     async def get_user_by_email(self, email: str) -> AuthUser | None:
         if self._database_pool is not None:
-            return await self._get_user_by_email_via_postgres(email)
+            return await self._get_user_by_email_via_direct_database(email)
         _logger.warning(
-            "get_user_by_email without SUPABASE_DATABASE_URL: fetches all users via list_users; "
-            "set SUPABASE_DATABASE_URL for efficient direct query on auth.users"
+            "get_user_by_email without AUTHENTICATION_SERVICE_DATABASE_URL: fetches all users via list_users; "
+            "set AUTHENTICATION_SERVICE_DATABASE_URL for efficient direct query on auth.users"
         )
         return await self._get_user_by_email_via_list_users(email)
 
-    async def _get_user_by_email_via_postgres(self, email: str) -> AuthUser | None:
-        """Efficient query via direct Postgres connection to auth.users."""
+    async def _get_user_by_email_via_direct_database(
+        self, email: str
+    ) -> AuthUser | None:
+        """Efficient query via direct SQL connection to auth.users."""
         pool = self._database_pool
         if pool is None:
             _logger.warning(
@@ -232,18 +234,18 @@ class SupabaseAuthAdapter:
         if not q:
             return []
         if self._database_pool is not None:
-            return await self._search_users_via_postgres(q, limit)
+            return await self._search_users_via_direct_database(q, limit)
         return await self._search_users_via_list_users(q, limit)
 
-    async def _search_users_via_postgres(
+    async def _search_users_via_direct_database(
         self, query: str, limit: int
     ) -> list[AuthUser]:
-        """Search via direct Postgres query on auth.users."""
+        """Search via direct SQL query on auth.users."""
         pool = self._database_pool
         if pool is None:
             raise RuntimeError(
                 "Supabase auth adapter: database pool is required for "
-                "search_users_by_username but is absent; set SUPABASE_DATABASE_URL"
+                "search_users_by_username but is absent; set AUTHENTICATION_SERVICE_DATABASE_URL"
             )
         pattern = f"%{query}%"
         async with pool.acquire() as conn:

@@ -9,6 +9,7 @@ RUN pip install --no-cache-dir uv
 
 COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
+COPY migrations ./migrations
 
 RUN uv sync --frozen --no-dev
 

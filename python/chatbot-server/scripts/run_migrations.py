@@ -1,4 +1,4 @@
-"""Production-oriented Postgres migration runner.
+"""Production-oriented SQL migration runner.
 
 Usage:
   uv run python scripts/run_migrations.py
@@ -6,10 +6,7 @@ Usage:
 
 Database URL resolution order:
   1) --database-url
-  2) MIGRATION_DATABASE_URL
-  3) DATABASE_URL
-  4) APP_DATA_DATABASE_URL
-  5) SUPABASE_DATABASE_URL
+  2) APP_DATA_DATABASE_ADMIN_* (see Settings.app_data_database_admin_url() / .env.compose.example)
 """
 
 from __future__ import annotations
@@ -17,7 +14,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
-import os
 import time
 from dataclasses import dataclass
 
@@ -61,18 +57,17 @@ def _parse_args() -> argparse.Namespace:
 
 
 def _resolve_database_url(cli_database_url: str | None) -> str:
-    for candidate in (
-        cli_database_url,
-        os.getenv("MIGRATION_DATABASE_URL"),
-        os.getenv("DATABASE_URL"),
-        os.getenv("APP_DATA_DATABASE_URL"),
-        os.getenv("SUPABASE_DATABASE_URL"),
-    ):
-        if candidate and candidate.strip():
-            return candidate.strip()
+    if cli_database_url and cli_database_url.strip():
+        return cli_database_url.strip()
+    from src.settings import settings
+
+    admin = settings.app_data_database_admin_url()
+    if admin:
+        return admin
     raise ValueError(
-        "No database URL configured. Set MIGRATION_DATABASE_URL (recommended), "
-        "or DATABASE_URL / APP_DATA_DATABASE_URL / SUPABASE_DATABASE_URL."
+        "No migration database URL. Pass --database-url or set APP_DATA_DATABASE_HOST, "
+        "APP_DATA_DATABASE_PORT, APP_DATA_DATABASE_NAME, APP_DATA_DATABASE_ADMIN_USERNAME, "
+        "and APP_DATA_DATABASE_ADMIN_PASSWORD."
     )
 
 

@@ -74,9 +74,11 @@ class Subject(BaseModel):
     def to_str(self) -> str:
         """Serialize to 'type:id' format for DB and comparisons."""
         return to_subject_str(
-            self.subject_type.value
-            if hasattr(self.subject_type, "value")
-            else str(self.subject_type),
+            (
+                self.subject_type.value
+                if hasattr(self.subject_type, "value")
+                else str(self.subject_type)
+            ),
             self.subject_id,
         )
 

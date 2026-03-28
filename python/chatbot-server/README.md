@@ -9,7 +9,7 @@ Python backend for the smart AI chatbot (FastAPI, LangChain, LangGraph).
 
 ## Quick Start
 
-1. Copy `.env.example` to `.env` and set `OPENAI_API_KEY=...`
+1. Copy `.env.example` to `.env` and set `OPENAI_API_KEY=...` (and JWT / database variables as needed; see `src/settings.py` for `APP_DATA_DATABASE_*` and `AUTHENTICATION_SERVICE_*`).
 2. Run the CLI or API server:
 
 ```bash

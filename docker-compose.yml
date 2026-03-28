@@ -1,0 +1,82 @@
+# Full stack: database, FastAPI chatbot API, static web UI (nginx proxies /api → API).
+# Usage: copy .env.compose.example to .env, set secrets, then ./deploy-compose.sh up
+
+services:
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${APP_DATA_DATABASE_ADMIN_USERNAME:-chatbot}
+      POSTGRES_PASSWORD: ${APP_DATA_DATABASE_ADMIN_PASSWORD:?set APP_DATA_DATABASE_ADMIN_PASSWORD in .env}
+      POSTGRES_DB: ${APP_DATA_DATABASE_NAME:-chatbot}
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${APP_DATA_DATABASE_ADMIN_USERNAME:-chatbot} -d ${APP_DATA_DATABASE_NAME:-chatbot}",
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    networks: [stack]
+
+  api:
+    build:
+      context: ./python/chatbot-server
+      dockerfile: Dockerfile
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?set in .env}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set in .env}
+      APP_DATA_DATABASE_HOST: database
+      APP_DATA_DATABASE_PORT: "5432"
+      APP_DATA_DATABASE_NAME: ${APP_DATA_DATABASE_NAME:-chatbot}
+      AUTHENTICATION_SERVICE_USERNAME: ${AUTHENTICATION_SERVICE_USERNAME:?set AUTHENTICATION_SERVICE_USERNAME in .env}
+      AUTHENTICATION_SERVICE_PASSWORD: ${AUTHENTICATION_SERVICE_PASSWORD:?set AUTHENTICATION_SERVICE_PASSWORD in .env}
+      APP_DATA_DATABASE_USERNAME: ${APP_DATA_DATABASE_USERNAME:?set APP_DATA_DATABASE_USERNAME in .env}
+      APP_DATA_DATABASE_PASSWORD: ${APP_DATA_DATABASE_PASSWORD:?set APP_DATA_DATABASE_PASSWORD in .env}
+      APP_DATA_DATABASE_ADMIN_USERNAME: ${APP_DATA_DATABASE_ADMIN_USERNAME:-chatbot}
+      APP_DATA_DATABASE_ADMIN_PASSWORD: ${APP_DATA_DATABASE_ADMIN_PASSWORD:?set APP_DATA_DATABASE_ADMIN_PASSWORD in .env}
+      APP_DATA_DATABASE_RUN_MIGRATIONS_ON_STARTUP: "true"
+      AUTHENTICATION_SERVICE_PROVIDER: sql
+      APP_DATA_DATABASE_PROVIDER: sql
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      HOST: "0.0.0.0"
+      PORT: "8000"
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+    networks: [stack]
+
+  web:
+    build:
+      context: ./web/chat-ui
+      dockerfile: Dockerfile
+    volumes:
+      - ./web/chat-ui/nginx.compose.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [stack]
+
+networks:
+  stack:
+    driver: bridge
+
+volumes:
+  database_data:

@@ -13,37 +13,34 @@ logger = logging.getLogger(__name__)
 
 
 def _migration_database_url() -> str | None:
-    if settings.MIGRATION_DATABASE_URL is not None:
-        return settings.MIGRATION_DATABASE_URL.get_secret_value()
-    if settings.DATABASE_URL is not None:
-        return settings.DATABASE_URL.get_secret_value()
-    if settings.APP_DATA_DATABASE_URL is not None:
-        return settings.APP_DATA_DATABASE_URL.get_secret_value()
-    if settings.SUPABASE_DATABASE_URL is not None:
-        return settings.SUPABASE_DATABASE_URL.get_secret_value()
-    return None
+    """Privileged URL for migrations (APP_DATA_DATABASE_ADMIN_*)."""
+    return settings.app_data_database_admin_url()
 
 
 async def run_migrations_on_startup() -> None:
-    """Apply pending migrations using a privileged URL when configured.
+    """Apply pending migrations using APP_DATA_DATABASE_ADMIN_* when configured.
 
-    Prefer MIGRATION_DATABASE_URL (superuser / owner) so runtime can use chatbot_app.
-    Falls back to DATABASE_URL only when MIGRATION_DATABASE_URL is unset (dev / legacy).
+    Skips when both auth and app data are mock, or when migrations are disabled.
     """
-    if not settings.RUN_MIGRATIONS_ON_STARTUP:
-        logger.info("Skipping DB migrations (RUN_MIGRATIONS_ON_STARTUP=false)")
+    if not settings.APP_DATA_DATABASE_RUN_MIGRATIONS_ON_STARTUP:
+        logger.info(
+            "Skipping DB migrations (APP_DATA_DATABASE_RUN_MIGRATIONS_ON_STARTUP=false)"
+        )
         return
 
     if (
-        settings.AUTH_PROVIDER.lower() == "mock"
-        and settings.APP_DATA_PROVIDER.lower() == "mock"
+        settings.AUTHENTICATION_SERVICE_PROVIDER.lower() == "mock"
+        and settings.APP_DATA_DATABASE_PROVIDER.lower() == "mock"
     ):
         logger.info("Skipping DB migrations (mock auth and mock app data)")
         return
 
     url = _migration_database_url()
     if not url:
-        logger.warning("No database URL for migrations; skipping")
+        logger.warning(
+            "No APP_DATA_DATABASE_ADMIN_* credentials for migrations; skipping "
+            "(set APP_DATA_DATABASE_ADMIN_USERNAME and APP_DATA_DATABASE_ADMIN_PASSWORD)"
+        )
         return
 
     logger.info("Running database migrations (startup)")

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Auth comes from .env (AUTH_PROVIDER defaults to postgres in settings).
-# For mock auth without Postgres: AUTH_PROVIDER=mock ./run_dev_server.sh
+# Auth comes from .env (AUTHENTICATION_SERVICE_PROVIDER defaults to sql in settings).
+# For mock auth without a database: AUTHENTICATION_SERVICE_PROVIDER=mock ./run_dev_server.sh
 # Only pass JWT_SECRET_KEY through if already set; otherwise let pydantic load from .env
 [ -n "${JWT_SECRET_KEY:-}" ] && export JWT_SECRET_KEY
 

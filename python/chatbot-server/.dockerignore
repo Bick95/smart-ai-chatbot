@@ -7,6 +7,6 @@ htmlcov
 .coverage
 .env
 .env.*
-postgres_data
+database_data
 tests
 .git

@@ -53,7 +53,7 @@ export function ChatUI({
     onLoadOlder,
     hasOlderMessages,
     variant = "full",
-    placeholder = "Message ChatGPT...",
+    placeholder = "Message Chatbot...",
     emptyStateSubtext,
 }: ChatUIProps) {
     const viewportRef = useRef<HTMLDivElement>(null);
