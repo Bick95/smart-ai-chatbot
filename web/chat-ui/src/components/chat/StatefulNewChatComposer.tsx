@@ -18,7 +18,7 @@ export interface StatefulNewChatComposerProps {
 export function StatefulNewChatComposer({
     folderId = null,
     variant = "full",
-    placeholder = "Message ChatGPT...",
+    placeholder = "Message Chatbot...",
 }: StatefulNewChatComposerProps) {
     const navigate = useNavigate();
     const store = useStatefulChatStore();

@@ -28,7 +28,7 @@ export interface ChatInputProps {
 export function ChatInput({
     onSubmit,
     disabled = false,
-    placeholder = "Message ChatGPT...",
+    placeholder = "Message Chatbot...",
 }: ChatInputProps) {
     const form = useForm({
         defaultValues: {
