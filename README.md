@@ -16,7 +16,7 @@ The goal is a credible playground for **advanced chatbot-building**—multi-turn
 
 ![Chat UI: assistant reply with tool calls and tool results expanded in the thread](./docs/screenshots/chat-with-tool-uses.png)
 
-**Sharing**
+**Sharing chats**
 
 ![Manage chat dialog on the Permissions tab: invite others as viewer or editor](./docs/screenshots/share-chat.png)
 
